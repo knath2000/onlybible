@@ -101,6 +101,17 @@ export const BibleProvider = ({ children }: { children: ReactNode }) => {
 
       const verseData = await bibleService.fetchVerse(book, chapter, verse);
       dispatch({ type: 'SET_VERSE_TEXT', payload: verseData.text });
+
+      // Silently fetch English translation to enable accurate word-by-word hover
+      // and instant toggle when user clicks Translate
+      translationService.fetchEnglishVerse(book, chapter, verse)
+        .then(englishData => {
+          dispatch({ type: 'SET_TRANSLATED_TEXT', payload: englishData.text });
+        })
+        .catch(err => {
+          console.warn('Background translation fetch failed:', err);
+          // Non-critical error, just means hover won't be context-aware until retry
+        });
     } catch (error) {
       dispatch({ type: 'SET_ERROR', payload: error instanceof Error ? error.message : 'Unknown error' });
     }
@@ -142,7 +153,9 @@ export const BibleProvider = ({ children }: { children: ReactNode }) => {
 
   const translateWord = async (word: string): Promise<string> => {
     try {
-      return await translationService.translateWord(word);
+      // Pass the current translated text as context for better accuracy
+      // This allows the service to pick the specific English word used in the KJV verse
+      return await translationService.translateWord(word, 'es', 'en', state.translatedText);
     } catch (error) {
       console.error('Word translation error:', error);
       return word; // Return original word if translation fails

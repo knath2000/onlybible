@@ -19,125 +19,336 @@ export interface EnglishVerseResult {
 }
 
 export class TranslationService {
-  // Dictionary for word-by-word translations (used as fallback and for hover tooltips)
-  private wordDictionary: Record<string, string> = {
-    'principio': 'beginning',
-    'cielos': 'heavens',
-    'tierra': 'earth',
-    'dios': 'God',
-    'creó': 'created',
-    'luz': 'light',
-    'día': 'day',
-    'noche': 'night',
-    'mar': 'sea',
-    'cielo': 'sky',
-    'agua': 'water',
-    'hizo': 'made',
-    'bueno': 'good',
-    'visto': 'seen',
-    'que': 'that',
-    'era': 'was',
-    'sobre': 'over',
-    'la': 'the',
+  // Expanded Dictionary for word-by-word translations
+  private wordDictionary: Record<string, string | string[]> = {
+    // Common Particles & Prepositions
     'y': 'and',
-    'en': 'in',
-    'de': 'of',
+    'o': 'or',
+    'pero': 'but',
+    'mas': 'but',
+    'sino': 'but',
+    'porque': ['because', 'for'],
+    'pues': ['for', 'then'],
+    'que': ['that', 'which', 'who'],
+    'en': ['in', 'on', 'at'],
+    'de': ['of', 'from'],
     'a': 'to',
     'con': 'with',
-    'por': 'by',
-    'para': 'for',
-    'es': 'is',
-    'son': 'are',
-    'fue': 'was',
-    'fueron': 'were',
-    'había': 'there was',
-    'habían': 'there were',
-    'como': 'like',
-    'así': 'so',
-    'pero': 'but',
-    'porque': 'because',
-    'cuando': 'when',
-    'donde': 'where',
-    'quien': 'who',
+    'sin': 'without',
+    'por': ['by', 'for', 'through'],
+    'para': ['for', 'to'],
+    'sobre': ['over', 'upon', 'about'],
+    'entre': ['between', 'among'],
+    'hacia': 'towards',
+    'desde': 'from',
+    'hasta': ['until', 'unto'],
+    'durante': 'during',
+    'según': 'according to',
+    'contra': 'against',
+    
+    // Articles & Pronouns
+    'el': ['the', 'he'],
+    'la': 'the',
+    'los': ['the', 'them'],
+    'las': ['the', 'them'],
+    'un': ['a', 'an', 'one'],
+    'una': ['a', 'an', 'one'],
+    'unos': 'some',
+    'unas': 'some',
     'este': 'this',
+    'esta': 'this',
+    'esto': 'this',
     'ese': 'that',
+    'esa': 'that',
+    'eso': 'that',
     'aquel': 'that',
+    'aquella': 'that',
+    'aquello': 'that',
     'mi': 'my',
     'tu': 'your',
-    'su': 'his/her/its',
+    'su': ['his', 'her', 'its', 'their'],
     'nuestro': 'our',
     'vuestro': 'your',
     'yo': 'I',
     'tú': 'you',
     'él': 'he',
     'ella': 'she',
+    'usted': 'you',
     'nosotros': 'we',
-    'vosotros': 'you all',
+    'vosotros': 'you',
     'ellos': 'they',
     'ellas': 'they',
-    'esto': 'this',
-    'eso': 'that',
-    'aquello': 'that',
-    'aquí': 'here',
-    'ahí': 'there',
-    'allí': 'there',
-    'sí': 'yes',
-    'no': 'no',
-    'tal vez': 'maybe',
-    'quizás': 'perhaps',
+    'ustedes': 'you',
+    'quien': 'who',
+    'quienes': 'who',
+    'donde': 'where',
+    'cuando': 'when',
+    'como': ['like', 'as', 'how'],
+    'todo': ['all', 'every', 'whole'],
+    'toda': ['all', 'every', 'whole'],
+    'todos': ['all', 'everyone'],
+    'todas': 'all',
+    'nada': 'nothing',
+    'nadie': 'no one',
+    'algo': 'something',
+    'alguien': 'someone',
+    'mismo': ['same', 'self'],
+    'propio': 'own',
+
+    // Common Verbs (Infinitive & Conjugated forms)
+    'ser': 'be',
+    'es': 'is',
+    'son': 'are',
+    'soy': 'am',
+    'eres': 'are',
+    'era': 'was',
+    'eran': 'were',
+    'fue': 'was',
+    'fueron': 'were',
+    'sea': 'be',
+    'sido': 'been',
+    'estar': 'be',
+    'está': 'is',
+    'están': 'are',
+    'estaba': 'was',
+    'estaban': 'were',
+    'estuvo': 'was',
+    'haber': 'have',
+    'ha': 'has',
+    'han': 'have',
+    'había': 'had',
+    'hay': ['there is', 'there are'],
+    'hacer': ['make', 'do'],
+    'hizo': ['made', 'did'],
+    'hace': ['makes', 'does'],
+    'hecho': ['made', 'done'],
+    'decir': 'say',
+    'dijo': 'said',
+    'dice': 'says',
+    'dicho': 'said',
+    'ir': 'go',
+    'va': 'goes',
+    'fue': 'went', // Ambiguous with 'ser', handled by context check
+    'fueron': 'went',
+    'ver': 'see',
+    'vio': 'saw',
+    'visto': 'seen',
+    've': 'sees',
+    'dar': 'give',
+    'dio': 'gave',
+    'dado': 'given',
+    'da': 'gives',
+    'saber': 'know',
+    'sabe': 'knows',
+    'supo': 'knew',
+    'querer': 'want',
+    'quiere': 'wants',
+    'quiso': 'wanted',
+    'llegar': 'arrive',
+    'llegó': 'arrived',
+    'pasar': 'pass',
+    'pasó': 'passed',
+    'deber': ['must', 'ought', 'owe'],
+    'debe': 'must',
+    'poner': 'put',
+    'puso': 'put',
+    'parecer': 'seem',
+    'parece': 'seems',
+    'quedar': ['stay', 'remain'],
+    'creer': 'believe',
+    'cree': 'believes',
+    'creyó': 'believed',
+    'hablar': 'speak',
+    'habló': 'spoke',
+    'llevar': ['carry', 'take', 'bear'],
+    'llevó': ['carried', 'took'],
+    'dejar': ['leave', 'let'],
+    'dejó': ['left', 'let'],
+    'seguir': 'follow',
+    'siguió': 'followed',
+    'encontrar': 'find',
+    'encontró': 'found',
+    'llamar': 'call',
+    'llamó': 'called',
+    'venir': 'come',
+    'vino': 'came',
+    'vienen': 'come',
+    'pensar': 'think',
+    'piensa': 'thinks',
+    'salir': ['go out', 'leave'],
+    'salió': ['went out', 'left'],
+    'volver': 'return',
+    'volvió': 'returned',
+    'tomar': 'take',
+    'tomó': 'took',
+    'conocer': 'know',
+    'conoció': 'knew',
+    'vivir': 'live',
+    'vivió': 'lived',
+    'sentir': 'feel',
+    'sintió': 'felt',
+    'tratar': 'try',
+    'mirar': 'look',
+    'miró': 'looked',
+    'contar': ['count', 'tell'],
+    'empezar': 'start',
+    'comenzar': 'begin',
+    'esperar': ['wait', 'hope'],
+    'buscar': 'seek',
+    'existir': 'exist',
+    'entrar': 'enter',
+    'entró': 'entered',
+    'escribir': 'write',
+    'escribió': 'wrote',
+    'escrito': 'written',
+    'perder': 'lose',
+    'amar': 'love',
+    'amó': 'loved',
+    'ama': 'loves',
+    'odiar': 'hate',
+    'temer': 'fear',
+    'orar': 'pray',
+    'crear': 'create',
+    'creó': 'created',
+    'engendrar': 'beget',
+    'engendró': 'begat',
+
+    // Biblical Nouns
+    'dios': ['God', 'Deity'],
+    'señor': 'Lord',
+    'jesús': 'Jesus',
+    'cristo': 'Christ',
+    'espíritu': 'Spirit',
+    'santo': ['Holy', 'Saint'],
+    'padre': 'Father',
+    'hijo': 'Son',
+    'hombre': 'man',
+    'mujer': 'woman',
+    'niño': 'child',
+    'pueblo': 'people',
+    'gente': 'people',
+    'mundo': 'world',
+    'vida': 'life',
+    'muerte': 'death',
+    'amor': 'love',
+    'corazón': 'heart',
+    'alma': 'soul',
+    'mente': 'mind',
+    'cuerpo': 'body',
+    'carne': 'flesh',
+    'sangre': 'blood',
+    'luz': 'light',
+    'tinieblas': 'darkness',
+    'oscuridad': 'darkness',
+    'día': 'day',
+    'noche': 'night',
+    'cielo': ['heaven', 'sky'],
+    'cielos': ['heavens', 'skies'],
+    'tierra': ['earth', 'land'],
+    'mar': 'sea',
+    'agua': 'water',
+    'fuego': 'fire',
+    'viento': 'wind',
+    'camino': 'way',
+    'verdad': 'truth',
+    'palabra': 'word',
+    'verbo': 'Word',
+    'ley': 'law',
+    'gracia': 'grace',
+    'fe': 'faith',
+    'esperanza': 'hope',
+    'paz': 'peace',
+    'gloria': 'glory',
+    'reino': 'kingdom',
+    'rey': 'king',
+    'profeta': 'prophet',
+    'sacerdote': 'priest',
+    'templo': 'temple',
+    'casa': 'house',
+    'iglesia': 'church',
+    'evangelio': 'gospel',
+    'pecado': 'sin',
+    'mal': 'evil',
+    'bien': 'good',
+    'justicia': ['righteousness', 'justice'],
+    'misericordia': 'mercy',
+    'sabiduría': 'wisdom',
+    'nombre': 'name',
+    'voz': 'voice',
+    'mano': 'hand',
+    'ojo': 'eye',
+    'cara': 'face',
+    'rostro': 'face',
+    'boca': 'mouth',
+    'pie': 'foot',
+    'cabeza': 'head',
+    'principio': 'beginning',
+    'fin': 'end',
+    'siglo': ['age', 'century', 'forever'],
+    'tiempo': 'time',
+    'hora': 'hour',
+    'año': 'year',
+    'mes': 'month',
+    'semana': 'week',
+    'mañana': 'morning',
+    'tarde': ['afternoon', 'late'],
+    'hermano': 'brother',
+    'hermana': 'sister',
+    'amigo': 'friend',
+    'enemigo': 'enemy',
+    'judío': 'Jew',
+    'gentil': 'Gentile',
+    'israel': 'Israel',
+    'jerusalén': 'Jerusalem',
+    
+    // Adjectives / Adverbs
+    'bueno': 'good',
+    'malo': 'bad',
+    'grande': 'great',
+    'pequeño': 'small',
+    'nuevo': 'new',
+    'viejo': 'old',
+    'antiguo': 'ancient',
+    'alto': 'high',
+    'bajo': 'low',
+    'fuerte': 'strong',
+    'débil': 'weak',
+    'rico': 'rich',
+    'pobre': 'poor',
+    'bello': 'beautiful',
+    'hermoso': 'beautiful',
+    'santo': 'holy',
+    'justo': ['righteous', 'just'],
+    'impío': 'wicked',
+    'eterno': 'eternal',
+    'verdadero': 'true',
+    'falso': 'false',
+    'vivo': 'living',
+    'muerto': 'dead',
+    'lleno': 'full',
+    'vacío': 'empty',
+    'puro': 'pure',
+    'inmundo': 'unclean',
+    'digno': 'worthy',
+    'feliz': 'happy',
+    'bienaventurado': 'blessed',
+    'amado': 'beloved',
+    'único': 'only',
+    'unigénito': 'only begotten',
+    'primogénito': 'firstborn',
+    'ahora': 'now',
+    'entonces': 'then',
     'siempre': 'always',
     'nunca': 'never',
-    'a veces': 'sometimes',
-    'mucho': 'much',
-    'poco': 'little',
-    'demasiado': 'too much',
-    'bastante': 'enough',
-    'todo': 'all',
-    'algunos': 'some',
-    'ninguno': 'none',
-    'otro': 'other',
-    'mismo': 'same',
-    'diferente': 'different',
-    'igual': 'equal',
-    'mayor': 'greater',
-    'menor': 'less',
-    'mejor': 'better',
-    'peor': 'worse',
-    'primero': 'first',
-    'último': 'last',
-    'siguiente': 'next',
-    'anterior': 'previous',
-    'ahora': 'now',
-    'antes': 'before',
-    'después': 'after',
-    'a menudo': 'often',
-    'rara vez': 'rarely',
-    'generalmente': 'usually',
-    'normalmente': 'normally',
-    'frecuentemente': 'frequently',
-    'ocacionalmente': 'occasionally',
-    'solo': 'only',
-    'incluso': 'even',
-    'también': 'also',
-    'además': 'besides',
-    'hasta': 'until',
-    'aunque': 'although',
-    'sin embargo': 'however',
-    'no obstante': 'nevertheless',
-    'por lo tanto': 'therefore',
-    'así que': 'so',
-    'entonces': 'then',
-    'luego': 'later',
-    'mientras': 'while',
-    'qué': 'what',
-    'quién': 'who',
-    'cuál': 'which',
-    'cuándo': 'when',
-    'dónde': 'where',
-    'por qué': 'why',
-    'cómo': 'how',
-    'cuánto': 'how much',
-    'cuántos': 'how many'
+    'jamás': 'never',
+    'quizás': 'perhaps',
+    'sí': 'yes',
+    'no': 'no',
+    'muy': 'very',
+    'más': 'more',
+    'menos': 'less',
+    'tan': 'so',
+    'tanto': 'so much',
   };
 
   private cache: CacheService;
@@ -221,8 +432,10 @@ export class TranslationService {
    */
   async translateTextWithDictionary(text: string): Promise<TranslationResult> {
     const translated = text.split(' ').map(word => {
+      // Only use the first translation option for full text fallback
       const cleanWord = this.normalizeWord(word);
-      return this.wordDictionary[cleanWord] || word;
+      const trans = this.wordDictionary[cleanWord];
+      return Array.isArray(trans) ? trans[0] : (trans || word);
     }).join(' ');
 
     return {
@@ -237,32 +450,75 @@ export class TranslationService {
 
   /**
    * Legacy method for backward compatibility
-   * Now uses translateTextWithDictionary internally
    */
   async translateText(text: string, fromLang: string = 'es', toLang: string = 'en'): Promise<TranslationResult> {
-    const cacheKey = `translation-${text}-${fromLang}-${toLang}`;
-    const cached = this.cache.getCachedData(cacheKey);
-    if (cached) return cached;
-
-    const result = await this.translateTextWithDictionary(text);
-    this.cache.setCachedData(cacheKey, result, 3600);
-    return result;
+    return this.translateTextWithDictionary(text);
   }
 
   /**
-   * Translate a single word using the dictionary
-   * Used for word-by-word hover tooltips
+   * Translate a single word using the dictionary AND context from the full English verse
+   * This attempts to match the specific English word used in the KJV verse
    */
-  async translateWord(word: string, fromLang: string = 'es', toLang: string = 'en'): Promise<string> {
+  async translateWord(
+    word: string, 
+    fromLang: string = 'es', 
+    toLang: string = 'en',
+    contextVerse?: string
+  ): Promise<string> {
+    // Do not cache if context is provided, as the same word might have different translations in different verses
     const cacheKey = `word-translation-${word}-${fromLang}-${toLang}`;
-    const cached = this.cache.getCachedData(cacheKey);
-    if (cached) return cached;
+    
+    if (!contextVerse) {
+      const cached = this.cache.getCachedData(cacheKey);
+      if (cached) return cached;
+    }
 
     const cleanWord = this.normalizeWord(word);
-    const translation = this.wordDictionary[cleanWord] || word;
+    let translationCandidates = this.wordDictionary[cleanWord];
 
-    this.cache.setCachedData(cacheKey, translation, 3600);
-    return translation;
+    // If no translation found, return original (capitalized if needed)
+    if (!translationCandidates) {
+      return word;
+    }
+
+    // Normalize candidates to array
+    const candidates = Array.isArray(translationCandidates) 
+      ? translationCandidates 
+      : [translationCandidates];
+
+    // If we have context, try to find which candidate is actually used in the English verse
+    if (contextVerse) {
+      const contextLower = contextVerse.toLowerCase();
+      
+      // 1. Exact match check
+      for (const candidate of candidates) {
+        // Check if the candidate word appears in the English text
+        // We use word boundaries to avoid matching substrings (e.g. "he" in "the")
+        const regex = new RegExp(`\\b${candidate.toLowerCase()}\\b`);
+        if (regex.test(contextLower)) {
+          // Return the candidate
+          return candidate; 
+        }
+      }
+      
+      // 2. If no exact match, check for lemma/root match (simplified: starts with)
+      // e.g. dictionary has "create", text has "created"
+      for (const candidate of candidates) {
+        const root = candidate.toLowerCase().replace(/e$/, ''); // simple heuristic for some English verbs
+        if (contextLower.includes(root)) {
+           return candidate;
+        }
+      }
+    }
+
+    // Default: return the first candidate
+    const result = candidates[0];
+
+    if (!contextVerse) {
+      this.cache.setCachedData(cacheKey, result, 3600);
+    }
+    
+    return result;
   }
 
   /**

@@ -42,22 +42,29 @@ html {
 
 /* Custom scrollbar with gold accent */
 ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+  width: 10px;
+  height: 10px;
 }
 
 ::-webkit-scrollbar-track {
-  background: rgba(255, 255, 255, 0.05);
+  background: rgba(255, 255, 255, 0.03);
   border-radius: 10px;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(245, 166, 35, 0.4);
+  background: linear-gradient(180deg, #ffc857 0%, #f5a623 50%, #d4900d 100%);
   border-radius: 10px;
+  border: 2px solid rgba(13, 13, 26, 0.8);
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(245, 166, 35, 0.6);
+  background: linear-gradient(180deg, #ffd875 0%, #ffc857 50%, #f5a623 100%);
+}
+
+/* Firefox scrollbar */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #f5a623 rgba(255, 255, 255, 0.03);
 }
 
 /* Gold gradient text */

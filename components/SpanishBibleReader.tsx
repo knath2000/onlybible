@@ -317,171 +317,208 @@ export const SpanishBibleReader: React.FC = () => {
 
   // Bible Reader View
   return (
-    <div className="min-h-screen px-4 py-6">
-      <div className="max-w-4xl mx-auto">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-6">
-          <button 
-            onClick={goHome}
-            className="text-[#f5a623] flex items-center gap-2 hover:text-[#ffc857] transition-colors"
-          >
-            ← Inicio
-          </button>
-          <h1 className="font-[family-name:var(--font-playfair)] italic text-2xl text-gold-gradient">
-            Palabra Luminosa
+    <div className="min-h-screen relative">
+      {/* Floating Back Button */}
+      <button 
+        onClick={goHome}
+        className="fixed left-4 top-1/2 -translate-y-1/2 z-50 w-12 h-12 rounded-full bg-[rgba(37,37,66,0.8)] backdrop-blur-xl border border-white/10 flex items-center justify-center text-white/60 hover:text-white hover:bg-[rgba(37,37,66,0.95)] transition-all shadow-lg"
+        aria-label="Volver al inicio"
+      >
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M19 12H5M12 19l-7-7 7-7"/>
+        </svg>
+      </button>
+
+      {/* Gold Scrollbar Indicator */}
+      <div className="fixed right-2 top-1/4 bottom-1/4 w-1.5 rounded-full bg-white/10 z-40">
+        <div className="w-full h-1/3 rounded-full bg-gradient-to-b from-[#ffc857] to-[#f5a623]" />
+      </div>
+
+      {/* Main Content */}
+      <div className="max-w-3xl mx-auto px-4 py-6 pb-24">
+        {/* Header with Chapter Selector */}
+        <div className="text-center mb-8 pt-4">
+          <h1 className="font-[family-name:var(--font-playfair)] italic text-3xl text-gold-gradient mb-4">
+            {state.currentBook}
           </h1>
-          <button 
-            onClick={() => setViewMode('settings')}
-            className="text-white/60 hover:text-white transition-colors"
-          >
-            ⚙️
-          </button>
-        </div>
-
-        {/* Navigation Card */}
-        <GlassCard className="mb-6">
-          {error && (
-            <div className="mb-4 p-4 bg-red-500/20 border border-red-400/30 rounded-xl">
-              <h3 className="text-red-300 font-semibold mb-2">Error: {error.error}</h3>
-              {error.details && (
-                <p className="text-red-200 text-sm mb-2">Detalles: {error.details}</p>
-              )}
-              <GlassButton onClick={() => setError(null)} variant="ghost" size="sm">
-                Cerrar
-              </GlassButton>
-            </div>
-          )}
-
-          {/* Selectors */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-            <div>
-              <label className="block text-sm text-white/60 mb-2">Libro</label>
-              <select
-                value={state.currentBook}
-                onChange={handleBookChange}
-                className="w-full bg-white/5 border border-white/20 rounded-xl px-4 py-3 text-white focus:border-[#f5a623] focus:outline-none transition-colors"
-              >
-                {state.books.map((book) => (
-                  <option key={book} value={book}>{book}</option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-sm text-white/60 mb-2">Capítulo</label>
-              <select
-                value={state.currentChapter}
-                onChange={handleChapterChange}
-                className="w-full bg-white/5 border border-white/20 rounded-xl px-4 py-3 text-white focus:border-[#f5a623] focus:outline-none transition-colors"
-                disabled={state.chapters.length === 0}
-              >
-                {state.chapters.map((chapter) => (
-                  <option key={chapter} value={chapter}>{chapter}</option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-sm text-white/60 mb-2">Versículo</label>
-              <select
-                value={state.currentVerse}
-                onChange={handleVerseChange}
-                className="w-full bg-white/5 border border-white/20 rounded-xl px-4 py-3 text-white focus:border-[#f5a623] focus:outline-none transition-colors"
-                disabled={state.verses.length === 0}
-              >
-                {state.verses.map((verse) => (
-                  <option key={verse} value={verse}>{verse}</option>
-                ))}
-              </select>
-            </div>
+          
+          {/* Chapter Navigation */}
+          <div className="flex items-center justify-center gap-4 mb-4">
+            <button 
+              onClick={() => state.currentChapter > 1 && setChapter(state.currentChapter - 1)}
+              disabled={state.currentChapter <= 1}
+              className="text-white/40 hover:text-white disabled:opacity-30 transition-colors"
+            >
+              ◀
+            </button>
+            <select
+              value={state.currentChapter}
+              onChange={handleChapterChange}
+              className="bg-transparent text-[#f5a623] text-xl font-semibold focus:outline-none cursor-pointer text-center appearance-none"
+            >
+              {state.chapters.map((chapter) => (
+                <option key={chapter} value={chapter} className="bg-[#1a1a2e]">
+                  Capítulo {chapter}
+                </option>
+              ))}
+            </select>
+            <button 
+              onClick={() => setChapter(state.currentChapter + 1)}
+              disabled={state.currentChapter >= state.chapters.length}
+              className="text-white/40 hover:text-white disabled:opacity-30 transition-colors"
+            >
+              ▶
+            </button>
           </div>
 
-          {/* Action Buttons */}
-          <div className="flex flex-wrap gap-3">
+          {/* Book Selector */}
+          <select
+            value={state.currentBook}
+            onChange={handleBookChange}
+            className="bg-white/5 border border-white/20 rounded-xl px-4 py-2 text-white/80 text-sm focus:border-[#f5a623] focus:outline-none transition-colors"
+          >
+            {state.books.map((book) => (
+              <option key={book} value={book} className="bg-[#1a1a2e]">{book}</option>
+            ))}
+          </select>
+        </div>
+
+        {error && (
+          <div className="mb-6 p-4 bg-red-500/20 border border-red-400/30 rounded-xl text-center">
+            <p className="text-red-300 mb-2">{error.error}</p>
+            <GlassButton onClick={() => setError(null)} variant="ghost" size="sm">
+              Cerrar
+            </GlassButton>
+          </div>
+        )}
+
+        {/* Verse Cards */}
+        <div className="space-y-4">
+          {/* Current Verse Card */}
+          <GlassCard className="overflow-hidden">
+            {state.isLoading ? (
+              <div className="flex flex-col items-center justify-center py-16 gap-4">
+                <LoadingSpinner size="lg" />
+                <span className="text-white/60">Cargando versículo...</span>
+              </div>
+            ) : (
+              <div className="text-center">
+                {/* Verse Number */}
+                <p className="text-[#f5a623] text-xl font-semibold mb-6">
+                  {state.currentChapter}:{state.currentVerse}
+                </p>
+
+                {/* Spanish Verse Text - Large and Centered */}
+                <div className="mb-6">
+                  <p className="text-white text-2xl sm:text-3xl leading-relaxed font-[family-name:var(--font-playfair)]">
+                    {state.verseText.split(' ').map((word, index) => (
+                      <WordTranslationTooltip key={index} word={word}>
+                        <span className="inline hover:text-[#f5a623] transition-colors cursor-pointer">
+                          {word}{' '}
+                        </span>
+                      </WordTranslationTooltip>
+                    ))}
+                  </p>
+                </div>
+
+                {/* Divider */}
+                <div className="w-full h-px bg-gradient-to-r from-transparent via-white/20 to-transparent mb-6" />
+
+                {/* Transliteration/Reference in Gold Italic */}
+                <p className="text-[#f5a623] italic text-lg mb-4 font-[family-name:var(--font-playfair)]">
+                  {state.currentBook} {state.currentChapter}:{state.currentVerse} — Reina-Valera 1960
+                </p>
+
+                {/* English Translation */}
+                {state.showTranslation && state.translatedText && !state.isTranslating && (
+                  <>
+                    <div className="w-full h-px bg-gradient-to-r from-transparent via-white/10 to-transparent mb-4" />
+                    <p className="text-white/80 text-lg leading-relaxed">
+                      {state.translatedText}
+                    </p>
+                  </>
+                )}
+
+                {/* Translation Loading */}
+                {state.isTranslating && (
+                  <div className="flex items-center justify-center gap-3 py-4">
+                    <LoadingSpinner size="sm" />
+                    <span className="text-white/60">Cargando traducción...</span>
+                  </div>
+                )}
+
+                {/* Translate Button */}
+                {!state.showTranslation && !state.isTranslating && (
+                  <button 
+                    onClick={handleTranslate}
+                    className="mt-4 text-[#f5a623]/70 hover:text-[#f5a623] text-sm transition-colors"
+                  >
+                    🌐 Ver traducción al inglés
+                  </button>
+                )}
+
+                {state.showTranslation && !state.isTranslating && (
+                  <button 
+                    onClick={handleTranslate}
+                    className="mt-4 text-white/40 hover:text-white/60 text-sm transition-colors"
+                  >
+                    Ocultar traducción
+                  </button>
+                )}
+              </div>
+            )}
+          </GlassCard>
+
+          {/* Verse Navigation */}
+          <div className="flex justify-center gap-4 pt-4">
             <GlassButton 
               onClick={handlePrevVerse} 
               disabled={state.currentVerse <= 1}
               variant="default"
+              className="flex-1 max-w-[150px]"
             >
               ← Anterior
             </GlassButton>
-            <GlassButton onClick={handleNextVerse} variant="default">
+            
+            {/* Verse Selector */}
+            <select
+              value={state.currentVerse}
+              onChange={handleVerseChange}
+              className="bg-white/5 border border-white/20 rounded-xl px-4 py-2 text-[#f5a623] focus:border-[#f5a623] focus:outline-none transition-colors text-center"
+              disabled={state.verses.length === 0}
+            >
+              {state.verses.map((verse) => (
+                <option key={verse} value={verse} className="bg-[#1a1a2e]">
+                  Vers. {verse}
+                </option>
+              ))}
+            </select>
+
+            <GlassButton 
+              onClick={handleNextVerse} 
+              disabled={state.currentVerse >= state.verses.length}
+              variant="default"
+              className="flex-1 max-w-[150px]"
+            >
               Siguiente →
             </GlassButton>
-            <GlassButton 
-              onClick={handleTranslate} 
-              variant="gold"
-              disabled={state.isTranslating}
-            >
-              {state.isTranslating ? (
-                <>
-                  <LoadingSpinner size="sm" color="white" />
-                  <span>Traduciendo...</span>
-                </>
-              ) : state.showTranslation ? (
-                'Ocultar Traducción'
-              ) : (
-                '🌐 Traducir al Inglés'
-              )}
-            </GlassButton>
           </div>
-        </GlassCard>
+        </div>
 
-        {/* Verse Display Card */}
-        <GlassCard>
-          {state.isLoading ? (
-            <div className="flex flex-col items-center justify-center h-48 gap-4">
-              <LoadingSpinner size="lg" />
-              <span className="text-white/60">Cargando versículo...</span>
-            </div>
-          ) : (
-            <>
-              {/* Spanish Verse */}
-              <div className="mb-6">
-                <h2 className="text-[#f5a623] font-semibold text-lg mb-4">
-                  {state.currentBook} {state.currentChapter}:{state.currentVerse}
-                </h2>
-                <p className="text-white text-xl leading-relaxed">
-                  {state.verseText.split(' ').map((word, index) => (
-                    <WordTranslationTooltip key={index} word={word}>
-                      <span className="inline-block mx-0.5 hover:text-[#f5a623] transition-colors cursor-pointer">
-                        {word}
-                      </span>
-                    </WordTranslationTooltip>
-                  ))}
-                </p>
-              </div>
-
-              {/* Translation Loading */}
-              {state.isTranslating && (
-                <div className="p-4 bg-white/5 rounded-xl border border-white/10">
-                  <div className="flex items-center gap-3">
-                    <LoadingSpinner size="sm" />
-                    <span className="text-white/60">Cargando traducción al inglés (KJV)...</span>
-                  </div>
-                </div>
-              )}
-
-              {/* English Translation */}
-              {state.showTranslation && state.translatedText && !state.isTranslating && (
-                <div className="p-4 bg-white/5 rounded-xl border border-white/10">
-                  <h3 className="text-white/60 text-sm font-medium mb-2">
-                    English (KJV - King James Version)
-                  </h3>
-                  <p className="text-white/80 text-lg leading-relaxed italic">
-                    {state.translatedText}
-                  </p>
-                </div>
-              )}
-            </>
-          )}
-        </GlassCard>
-
-        {/* Tip */}
-        <p className="text-center text-white/40 text-sm mt-6">
-          💡 Toca cualquier palabra en español para ver su traducción
+        {/* Footer Tip */}
+        <p className="text-center text-white/30 text-sm mt-8">
+          ✨ Toca cualquier palabra para ver su traducción
         </p>
       </div>
+
+      {/* Settings Button - Fixed */}
+      <button 
+        onClick={() => setViewMode('settings')}
+        className="fixed right-4 top-4 z-50 w-10 h-10 rounded-full bg-[rgba(37,37,66,0.8)] backdrop-blur-xl border border-white/10 flex items-center justify-center text-white/60 hover:text-white transition-all"
+        aria-label="Ajustes"
+      >
+        ⚙️
+      </button>
     </div>
   );
 };

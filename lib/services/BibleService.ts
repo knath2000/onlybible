@@ -31,9 +31,9 @@ export class BibleService {
     if (cached) return cached;
 
     try {
-      // Use ONLY Biblia.com API
+      // Use ONLY Free RVR60 API (no key required)
       const passage = `${book}+${chapter}:${verse}`;
-      const response = await fetch(`/api/bible?bible=RVR60&passage=${encodeURIComponent(passage)}&format=text`);
+      const response = await fetch(`/api/bible?passage=${encodeURIComponent(passage)}`);
       
       const data = await response.json();
       
@@ -58,7 +58,7 @@ export class BibleService {
       this.cache.setCachedData(cacheKey, result, 86400);
       return result;
     } catch (error) {
-      console.error('Error fetching verse from Biblia.com:', error);
+      console.error('Error fetching verse from Free Bible API:', error);
       
       // Provide more specific error messages
       if (error instanceof TypeError && error.message.includes('fetch')) {
@@ -79,11 +79,11 @@ export class BibleService {
     if (cached) return cached;
 
     try {
-      // For Biblia.com API, fetch the first verse as a sample
+      // For Free RVR60 API, fetch the first verse as a sample
       // In a real implementation, you might want to fetch multiple verses
       // or use a different API that supports chapter fetching
       const passage = `${book}+${chapter}:1`;
-      const response = await fetch(`/api/bible?bible=RVR60&passage=${encodeURIComponent(passage)}&format=text`);
+      const response = await fetch(`/api/bible?passage=${encodeURIComponent(passage)}`);
       
       const data = await response.json();
       
@@ -117,7 +117,7 @@ export class BibleService {
       this.cache.setCachedData(cacheKey, result, 86400);
       return result;
     } catch (error) {
-      console.error('Error fetching chapter from Biblia.com:', error);
+      console.error('Error fetching chapter from Free Bible API:', error);
       
       // Provide more specific error messages
       if (error instanceof TypeError && error.message.includes('fetch')) {

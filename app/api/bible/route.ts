@@ -10,16 +10,14 @@ interface BibleVerse {
 }
 
 /**
- * GET /api/bible?bible=RVR60&passage=Juan+3:16&format=html
- * Fetches Bible content from Biblia.com API with enhanced error handling
+ * GET /api/bible?passage=Juan+3:16
+ * Fetches Bible content from Free RVR60 API (biblia-api.vercel.app) with enhanced error handling
  */
 export async function GET(request: NextRequest): Promise<NextResponse> {
   const { searchParams } = new URL(request.url);
-  const bibleId = searchParams.get('bible') || 'RVR60'; // Default to Reina-Valera 1960
   const passage = searchParams.get('passage');
-  const format = searchParams.get('format') || 'html'; // 'html' or 'text'
-
-  // Validate required parameters
+  
+  // Extract book, chapter, verse from passage like "Juan+3:16" or "Juan 3:16"
   if (!passage) {
     return NextResponse.json(
       {
@@ -30,29 +28,24 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     );
   }
 
-  const apiKey = process.env.BIBLIA_API_KEY;
-  
-  if (!apiKey) {
-    return NextResponse.json(
-      {
-        error: 'API key not configured. Please set BIBLIA_API_KEY in .env.local',
-        envStatus: process.env.NODE_ENV || 'development'
-      },
-      { status: 500 }
-    );
-  }
-
-  // Clean and format passage for API
+  // Parse passage: "Juan+3:16" -> book="Juan", chapter=3, verse=16
   const cleanPassage = passage.replace(/\s+/g, '+');
+  const passageParts = cleanPassage.split(':');
+  const bookChapter = passageParts[0];
+  const verse = passageParts.length > 1 ? parseInt(passageParts[1]) : 1;
   
-  // Construct Biblia.com API URL
-  const apiUrl = `https://api.biblia.com/v1/bible/content/${bibleId}.${format}?passage=${encodeURIComponent(cleanPassage)}&key=${apiKey}`;
+  const bookChapterParts = bookChapter.split('+');
+  const book = bookChapterParts[0];
+  const chapter = bookChapterParts.length > 1 ? parseInt(bookChapterParts[1]) : 1;
+  
+  // Construct free RVR60 API URL (no key required)
+  const apiUrl = `https://biblia-api.vercel.app/api/v1/${book.toLowerCase()}/${chapter}/${verse}`;
 
-  console.log('Biblia.com API Request:', {
-    bibleId,
-    passage: cleanPassage,
-    format,
-    apiUrl: apiUrl.replace(apiKey, '***HIDDEN***'), // Don't log actual key
+  console.log('Free Bible API Request:', {
+    book,
+    chapter,
+    verse,
+    apiUrl,
     timestamp: new Date().toISOString()
   });
 
@@ -60,14 +53,14 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     const response = await fetch(apiUrl, {
       method: 'GET',
       headers: {
-        'Accept': format === 'html' ? 'text/html' : 'text/plain',
+        'Accept': 'application/json',
         'Content-Type': 'application/json',
         'User-Agent': 'BibleApp/1.0 (Next.js App Router)'
       },
       signal: AbortSignal.timeout(15000), // 15 second timeout
     });
 
-    console.log('Biblia.com API Response:', {
+    console.log('Free Bible API Response:', {
       status: response.status,
       statusText: response.statusText,
       headers: Object.fromEntries(response.headers.entries())
@@ -75,7 +68,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('Biblia.com API Error Response:', {
+      console.error('Free Bible API Error Response:', {
         status: response.status,
         statusText: response.statusText,
         errorText: errorText
@@ -83,45 +76,30 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 
       return NextResponse.json(
         {
-          error: `Biblia.com API error: ${response.status} ${response.statusText}`,
+          error: `Free Bible API error: ${response.status} ${response.statusText}`,
           details: errorText,
-          bibleId: bibleId,
-          passage: cleanPassage,
-          apiUrl: apiUrl.replace(apiKey, '***HIDDEN***')
+          book,
+          chapter,
+          verse,
+          apiUrl
         },
         { status: response.status }
       );
     }
 
-    const content = await response.text();
+    const data = await response.json();
     
-    // Return HTML content directly for better formatting
-    if (format === 'html') {
-      return new NextResponse(content, {
-        headers: {
-          'Content-Type': 'text/html; charset=utf-8',
-          'Cache-Control': 'public, max-age=3600' // Cache for 1 hour
-        },
-      });
-    } else {
-      // Parse passage to extract book, chapter, verse
-      const passageParts = cleanPassage.split(':');
-      const book = passageParts[0].replace(/\+/g, ' ');
-      const chapterVerse = passageParts[1] || '';
-      const chapter = parseInt(chapterVerse.split('-')[0].split(',')[0] || '1');
-      const verse = passageParts.length > 1 ? parseInt(chapterVerse.split(':')[1] || '1') : 1;
+    // The free API returns JSON with verse text
+    const result: BibleVerse = {
+      reference: `${book} ${chapter}:${verse}`,
+      text: data.text || data.cleanText || '',
+      translation: 'RVR60',
+      verse: verse,
+      chapter: chapter,
+      book: book
+    };
 
-      const result: BibleVerse = {
-        reference: `${book} ${chapter}:${verse}`,
-        text: content.trim(),
-        translation: bibleId,
-        verse: verse,
-        chapter: chapter,
-        book: book
-      };
-
-      return NextResponse.json(result);
-    }
+    return NextResponse.json(result);
   } catch (error) {
     console.error('Bible API Fetch Error:', error);
 
@@ -130,7 +108,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       if (error.name === 'AbortError') {
         return NextResponse.json(
           {
-            error: 'Request timeout. The Biblia.com API is not responding.',
+            error: 'Request timeout. The Free Bible API is not responding.',
             details: 'Please try again in a few moments or check your internet connection.'
           },
           { status: 408 }
@@ -140,7 +118,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       if (error.name === 'TypeError') {
         return NextResponse.json(
           {
-            error: 'Network error. Unable to connect to Biblia.com API.',
+            error: 'Network error. Unable to connect to Free Bible API.',
             details: error.message
           },
           { status: 502 }
@@ -150,9 +128,11 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 
     return NextResponse.json(
       {
-        error: 'Failed to fetch Bible content from Biblia.com',
+        error: 'Failed to fetch Bible content from Free Bible API',
         details: error instanceof Error ? error.message : 'Unknown error',
-        bibleId: bibleId,
+        book,
+        chapter,
+        verse,
         passage: cleanPassage
       },
       { status: 500 }

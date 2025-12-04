@@ -6,10 +6,21 @@ export interface TranslationResult {
   fromLanguage: string;
   toLanguage: string;
   timestamp: string;
+  source?: 'bible-api' | 'dictionary'; // Track where translation came from
+}
+
+export interface EnglishVerseResult {
+  reference: string;
+  text: string;
+  translation: string;
+  verse: number;
+  chapter: number;
+  book: string;
 }
 
 export class TranslationService {
-  private mockTranslations: Record<string, string> = {
+  // Dictionary for word-by-word translations (used as fallback and for hover tooltips)
+  private wordDictionary: Record<string, string> = {
     'principio': 'beginning',
     'cielos': 'heavens',
     'tierra': 'earth',
@@ -135,42 +146,138 @@ export class TranslationService {
     this.cache = cache;
   }
 
+  /**
+   * Fetch the English translation of a Bible verse from KJV
+   * This is the primary method for verse translations
+   */
+  async fetchEnglishVerse(spanishBook: string, chapter: number, verse: number): Promise<EnglishVerseResult> {
+    const cacheKey = `english-verse-${spanishBook}-${chapter}-${verse}`;
+    const cached = this.cache.getCachedData(cacheKey);
+    if (cached) return cached;
+
+    try {
+      const response = await fetch(
+        `/api/bible/english?book=${encodeURIComponent(spanishBook)}&chapter=${chapter}&verse=${verse}`
+      );
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || `HTTP error: ${response.status}`);
+      }
+
+      const data: EnglishVerseResult = await response.json();
+      
+      // Cache for 24 hours (same as Spanish verses)
+      this.cache.setCachedData(cacheKey, data, 86400);
+      
+      return data;
+    } catch (error) {
+      console.error('Error fetching English verse:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Translate a verse by fetching the corresponding English Bible verse
+   * Returns both the Spanish original and English translation
+   */
+  async translateVerse(
+    spanishBook: string, 
+    chapter: number, 
+    verse: number, 
+    spanishText: string
+  ): Promise<TranslationResult> {
+    const cacheKey = `verse-translation-${spanishBook}-${chapter}-${verse}`;
+    const cached = this.cache.getCachedData(cacheKey);
+    if (cached) return cached;
+
+    try {
+      // Fetch the corresponding English verse from KJV
+      const englishVerse = await this.fetchEnglishVerse(spanishBook, chapter, verse);
+
+      const result: TranslationResult = {
+        originalText: spanishText,
+        translatedText: englishVerse.text,
+        fromLanguage: 'es',
+        toLanguage: 'en',
+        timestamp: new Date().toISOString(),
+        source: 'bible-api'
+      };
+
+      // Cache for 24 hours
+      this.cache.setCachedData(cacheKey, result, 86400);
+      return result;
+    } catch (error) {
+      console.error('Error translating verse:', error);
+      
+      // Fallback to dictionary-based translation if API fails
+      return this.translateTextWithDictionary(spanishText);
+    }
+  }
+
+  /**
+   * Fallback: Dictionary-based text translation (word-by-word)
+   * Used when the English Bible API is unavailable
+   */
+  async translateTextWithDictionary(text: string): Promise<TranslationResult> {
+    const translated = text.split(' ').map(word => {
+      const cleanWord = this.normalizeWord(word);
+      return this.wordDictionary[cleanWord] || word;
+    }).join(' ');
+
+    return {
+      originalText: text,
+      translatedText: translated,
+      fromLanguage: 'es',
+      toLanguage: 'en',
+      timestamp: new Date().toISOString(),
+      source: 'dictionary'
+    };
+  }
+
+  /**
+   * Legacy method for backward compatibility
+   * Now uses translateTextWithDictionary internally
+   */
   async translateText(text: string, fromLang: string = 'es', toLang: string = 'en'): Promise<TranslationResult> {
     const cacheKey = `translation-${text}-${fromLang}-${toLang}`;
     const cached = this.cache.getCachedData(cacheKey);
     if (cached) return cached;
 
-    // Simple mock translation - replace with real API later
-    const translated = text.split(' ').map(word => {
-      const cleanWord = word.toLowerCase().replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g, '');
-      return this.mockTranslations[cleanWord] || word;
-    }).join(' ');
-
-    const result: TranslationResult = {
-      originalText: text,
-      translatedText: translated,
-      fromLanguage: fromLang,
-      toLanguage: toLang,
-      timestamp: new Date().toISOString()
-    };
-
-    this.cache.setCachedData(cacheKey, result, 3600); // Cache for 1 hour
+    const result = await this.translateTextWithDictionary(text);
+    this.cache.setCachedData(cacheKey, result, 3600);
     return result;
   }
 
+  /**
+   * Translate a single word using the dictionary
+   * Used for word-by-word hover tooltips
+   */
   async translateWord(word: string, fromLang: string = 'es', toLang: string = 'en'): Promise<string> {
     const cacheKey = `word-translation-${word}-${fromLang}-${toLang}`;
     const cached = this.cache.getCachedData(cacheKey);
     if (cached) return cached;
 
-    const cleanWord = word.toLowerCase().replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g, '');
-    const translation = this.mockTranslations[cleanWord] || word;
+    const cleanWord = this.normalizeWord(word);
+    const translation = this.wordDictionary[cleanWord] || word;
 
-    this.cache.setCachedData(cacheKey, translation, 3600); // Cache for 1 hour
+    this.cache.setCachedData(cacheKey, translation, 3600);
     return translation;
   }
 
+  /**
+   * Normalize a word for dictionary lookup
+   * Removes punctuation, accents, and converts to lowercase
+   */
+  private normalizeWord(word: string): string {
+    return word
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '') // Remove accents
+      .replace(/[.,\/#!$%\^&\*;:{}=\-_`~()¿¡"'«»]/g, ''); // Remove punctuation
+  }
+
   getSupportedLanguages(): string[] {
-    return ['es', 'en']; // Spanish to English for now
+    return ['es', 'en'];
   }
 }

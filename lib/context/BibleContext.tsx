@@ -10,6 +10,7 @@ interface BibleState {
   verseText: string;
   translatedText: string;
   isLoading: boolean;
+  isTranslating: boolean; // Separate loading state for translation
   error: string | null;
   books: string[];
   chapters: number[];
@@ -43,6 +44,7 @@ const initialState: BibleState = {
   verseText: '',
   translatedText: '',
   isLoading: false,
+  isTranslating: false,
   error: null,
   books: [],
   chapters: [],
@@ -62,9 +64,12 @@ const bibleReducer = (state: BibleState, action: BibleAction): BibleState => {
     case 'SET_VERSE':
       return { ...state, currentVerse: action.payload };
     case 'SET_VERSE_TEXT':
-      return { ...state, verseText: action.payload, isLoading: false };
+      // Clear translated text when verse changes (will be refetched on translate)
+      return { ...state, verseText: action.payload, translatedText: '', showTranslation: false, isLoading: false };
     case 'SET_TRANSLATED_TEXT':
-      return { ...state, translatedText: action.payload, isLoading: false };
+      return { ...state, translatedText: action.payload, isTranslating: false };
+    case 'SET_TRANSLATING':
+      return { ...state, isTranslating: action.payload };
     case 'SET_LOADING':
       return { ...state, isLoading: action.payload };
     case 'SET_ERROR':
@@ -102,13 +107,35 @@ export const BibleProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const translateVerse = async () => {
+    // If translation is already showing, just toggle it off
+    if (state.showTranslation) {
+      dispatch({ type: 'TOGGLE_TRANSLATION' });
+      return;
+    }
+
+    // If we already have a translation cached, just show it
+    if (state.translatedText) {
+      dispatch({ type: 'TOGGLE_TRANSLATION' });
+      return;
+    }
+
     try {
-      dispatch({ type: 'SET_LOADING', payload: true });
+      dispatch({ type: 'SET_TRANSLATING', payload: true });
       dispatch({ type: 'CLEAR_ERROR' });
 
-      const result = await translationService.translateText(state.verseText);
+      // Use the new translateVerse method that fetches English Bible verses
+      const result = await translationService.translateVerse(
+        state.currentBook,
+        state.currentChapter,
+        state.currentVerse,
+        state.verseText
+      );
+      
       dispatch({ type: 'SET_TRANSLATED_TEXT', payload: result.translatedText });
+      dispatch({ type: 'TOGGLE_TRANSLATION' }); // Show the translation
     } catch (error) {
+      console.error('Translation error:', error);
+      dispatch({ type: 'SET_TRANSLATING', payload: false });
       dispatch({ type: 'SET_ERROR', payload: error instanceof Error ? error.message : 'Translation error' });
     }
   };

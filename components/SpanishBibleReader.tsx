@@ -253,10 +253,21 @@ export const SpanishBibleReader: React.FC = () => {
                 </p>
               </div>
 
-              {state.showTranslation && state.translatedText && (
+              {state.isTranslating && (
                 <div className="mt-4 p-4 bg-white/5 rounded-lg border border-white/10">
-                  <h3 className="text-lg font-medium text-white mb-2">Traducción al Inglés:</h3>
-                  <p className="text-white/90 leading-relaxed">
+                  <div className="flex items-center">
+                    <LoadingSpinner />
+                    <span className="ml-3 text-white/80">Cargando traducción al inglés (KJV)...</span>
+                  </div>
+                </div>
+              )}
+
+              {state.showTranslation && state.translatedText && !state.isTranslating && (
+                <div className="mt-4 p-4 bg-white/5 rounded-lg border border-white/10">
+                  <h3 className="text-lg font-medium text-white mb-2">
+                    Traducción al Inglés (KJV - King James Version):
+                  </h3>
+                  <p className="text-white/90 leading-relaxed italic">
                     {state.translatedText}
                   </p>
                 </div>

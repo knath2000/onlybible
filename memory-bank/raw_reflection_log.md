@@ -34,3 +34,43 @@ TaskRef: "Create Bible Reading App with Spanish Translation"
 - **CORS Solutions**: Documented multiple production deployment options for CORS resolution
 - **Glassmorphic Components**: Reusable UI components with consistent styling patterns
 - **State Management**: Effective use of React Context with useReducer for complex app state
+
+## Date: 2025-12-04
+TaskRef: "API Integration and Vercel Deployment Preparation"
+
+### Learnings:
+- **Biblia.com API Integration**: Successfully integrated with Biblia.com API using RVR60 (Reina-Valera 1960) Bible ID
+- **Domain-Restricted API Keys**: Learned that API keys can be restricted to specific domains, requiring careful Vercel configuration
+- **Enhanced Error Handling**: Implemented comprehensive error logging and user-friendly error messages in Spanish
+- **API-Only Architecture**: Successfully transitioned from mock data to API-only architecture
+- **Verse Selector Fix**: Resolved missing verse population logic in BibleContext, fixing the verse selector issue
+- **Built-in Diagnostics**: Created "Probar Conexión" (Test Connection) functionality for immediate API testing
+- **Vercel Deployment**: Created comprehensive deployment guide with environment configuration and domain registration
+- **Security Best Practices**: Learned importance of API key security and proper environment variable management
+
+### Difficulties:
+- **API Key Domain Restrictions**: Initial API integration failed due to domain restrictions on the Biblia.com API key
+- **Verse Selector Bug**: Discovered and fixed missing verse population logic that prevented verse selection
+- **Error Handling Complexity**: Had to implement multi-level error detection and user-friendly Spanish error messages
+- **API Key Exposure**: The provided API key was exposed in code and needs regeneration for production use
+- **Environment Configuration**: Required careful setup of environment variables across all Vercel environments
+
+### Successes:
+- **API Integration Complete**: Successfully integrated Biblia.com API with proper error handling and logging
+- **Verse Selector Fixed**: Resolved the verse selector issue that was preventing users from selecting specific verses
+- **Enhanced Error Handling**: Implemented comprehensive error handling with detailed logging and user-friendly messages
+- **Spanish Bible Reader**: Built dedicated component with built-in diagnostics and testing functionality
+- **Vercel Deployment Ready**: Created complete deployment configuration and comprehensive guide
+- **Built-in Testing Tools**: Added "Probar Conexión" button for immediate API diagnostics
+- **Security Implementation**: Proper environment variable management and API key protection
+- **Documentation**: Created comprehensive Vercel deployment guide with troubleshooting
+
+### Improvements Identified for Consolidation:
+- **API Integration Pattern**: Domain-restricted API with comprehensive error handling and logging
+- **Error Handling Enhancement**: Multi-level error detection with user-friendly Spanish messages and built-in diagnostics
+- **Component Architecture**: Dedicated Spanish Bible reader with integrated testing and troubleshooting
+- **Deployment Preparation**: Complete Vercel deployment configuration with environment setup and domain registration
+- **Security Best Practices**: API key protection and environment variable management
+- **User Experience**: Spanish error messages and step-by-step troubleshooting guidance
+- **Debugging Tools**: Built-in diagnostic functionality for immediate API testing and issue identification
+- **Production Readiness**: Comprehensive deployment guide ensuring smooth production deployment

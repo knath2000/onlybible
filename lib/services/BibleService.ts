@@ -18,7 +18,7 @@ export interface BibleChapter {
 }
 
 export class BibleService {
-  private apiUrl = 'https://biblia-api.vercel.app/api/v1';
+  private apiUrl = 'https://api.biblia.com/v1';
   private cache: CacheService;
   private useMockData: boolean = false; // Set to false to use ONLY Biblia.com API
 

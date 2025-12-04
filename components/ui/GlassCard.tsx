@@ -6,12 +6,14 @@ interface GlassCardProps {
   children: React.ReactNode;
   className?: string;
   hover?: boolean;
+  onClick?: () => void;
 }
 
 export const GlassCard: React.FC<GlassCardProps> = ({ 
   children, 
   className = '',
-  hover = false 
+  hover = false,
+  onClick
 }) => {
   return (
     <div 
@@ -26,6 +28,10 @@ export const GlassCard: React.FC<GlassCardProps> = ({
         ${hover ? 'card-hover cursor-pointer' : ''}
         ${className}
       `}
+      onClick={onClick}
+      role={onClick ? 'button' : undefined}
+      tabIndex={onClick ? 0 : undefined}
+      onKeyDown={onClick ? (e) => e.key === 'Enter' && onClick() : undefined}
     >
       {children}
     </div>

@@ -412,11 +412,13 @@ export const SpanishBibleReader: React.FC = () => {
                 <div className="mb-6">
                   <p className="text-white text-2xl sm:text-3xl leading-relaxed font-[family-name:var(--font-playfair)]">
                     {state.verseText.split(' ').map((word, index) => (
-                      <WordTranslationTooltip key={index} word={word}>
-                        <span className="inline hover:text-[#f5a623] transition-colors cursor-pointer">
-                          {word}{' '}
-                        </span>
-                      </WordTranslationTooltip>
+                      <span key={index} className="inline">
+                        <WordTranslationTooltip word={word}>
+                          <span className="hover:text-[#f5a623] transition-colors cursor-pointer">
+                            {word}
+                          </span>
+                        </WordTranslationTooltip>{' '}
+                      </span>
                     ))}
                   </p>
                 </div>

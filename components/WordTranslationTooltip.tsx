@@ -2,7 +2,6 @@
 
 import React, { useState } from 'react';
 import { useBible } from '../lib/context/BibleContext';
-import { GlassCard } from './ui';
 
 interface WordTranslationTooltipProps {
   word: string;
@@ -40,27 +39,47 @@ export const WordTranslationTooltip: React.FC<WordTranslationTooltipProps> = ({ 
     }, 200);
   };
 
+  // Clean the word for display (remove punctuation for comparison)
+  const cleanWord = word.replace(/[.,;:!?¿¡"'()]/g, '');
+  const isDifferent = translation && translation.toLowerCase() !== cleanWord.toLowerCase();
+
   return (
     <span
-      className="relative inline-block cursor-pointer"
+      className="relative inline-block"
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
     >
       {children}
 
       {showTooltip && (
-        <div className="absolute z-50 bottom-full left-1/2 transform -translate-x-1/2 mb-2">
-          <GlassCard className="p-2 text-sm min-w-[120px] text-center">
+        <div 
+          className="absolute z-50 bottom-full left-1/2 transform -translate-x-1/2 mb-2 animate-fade-in"
+          style={{ animation: 'fadeIn 0.2s ease-out' }}
+        >
+          <div className="bg-[#1a1a2e] border border-[#f5a623]/30 rounded-xl px-4 py-2 shadow-lg shadow-black/30 min-w-[120px] text-center whitespace-nowrap">
             {isLoading ? (
-              <div className="text-white/80">Traduciendo...</div>
+              <div className="text-white/60 text-sm">Traduciendo...</div>
             ) : translation ? (
-              <div className="text-white">
-                <span className="font-medium">{word}</span> → <span className="text-blue-300">{translation}</span>
+              <div className="text-sm">
+                <span className="text-white/80">{cleanWord}</span>
+                {isDifferent && (
+                  <>
+                    <span className="text-white/40 mx-2">→</span>
+                    <span className="text-[#f5a623] font-medium">{translation}</span>
+                  </>
+                )}
+                {!isDifferent && (
+                  <span className="text-white/50 ml-2">(same)</span>
+                )}
               </div>
             ) : (
-              <div className="text-white/60">No translation available</div>
+              <div className="text-white/40 text-sm">Sin traducción</div>
             )}
-          </GlassCard>
+            {/* Tooltip arrow */}
+            <div className="absolute top-full left-1/2 transform -translate-x-1/2 -mt-px">
+              <div className="border-8 border-transparent border-t-[#1a1a2e]" />
+            </div>
+          </div>
         </div>
       )}
     </span>

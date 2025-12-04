@@ -1,54 +1,67 @@
 # Active Context: Current Development Status
 
 ## Current Work Focus
-- **API Integration Phase Completed**: Successfully implemented Biblia.com API integration with enhanced error handling
-- **Vercel Deployment Ready**: Application configured for production deployment with domain-restricted API key
-- **Memory Bank Documentation**: Comprehensive documentation of all learnings and achievements
+- **Translation Feature Completed**: Successfully implemented English Bible translation using KJV via bible-api.com
+- **API Architecture Optimized**: Switched to free APIs (biblia-api.vercel.app + bible-api.com) requiring no API keys
+- **Unicode Normalization Fixed**: Resolved 404 errors caused by accented Spanish book names
 
-## Recent Changes (December 4, 2025)
-- ✅ **Resolved Verse Selector Issue**: Fixed missing verse population logic in BibleContext
-- ✅ **API Integration Complete**: Implemented Biblia.com API with RVR60 (Reina-Valera 1960) support
-- ✅ **Enhanced Error Handling**: Added comprehensive error logging and user-friendly error messages
-- ✅ **Mock Data Removed**: Transitioned to API-only architecture as requested
-- ✅ **Vercel Deployment Guide**: Created complete deployment and configuration documentation
-- ✅ **Spanish Bible Reader**: Built dedicated component with built-in API testing and diagnostics
-- ✅ **Environment Configuration**: Properly configured API key and environment variables
+## Recent Changes (December 4, 2025 - Latest Session)
+
+### API & Translation Fixes
+- ✅ **Fixed 404 Error for Accented Books**: Added `normalizeText()` function to handle Unicode NFD normalization for Spanish book names (Génesis → genesis)
+- ✅ **Switched to Free Spanish Bible API**: Now using `biblia-api.vercel.app` (no API key required)
+- ✅ **Implemented English Translation API**: New `/api/bible/english` route using `bible-api.com` for KJV verses
+- ✅ **Fixed "Traducir Versículo" Button**: Now fetches and displays real KJV English Bible verses
+
+### TranslationService Enhancements
+- ✅ **New `translateVerse()` Method**: Fetches corresponding KJV verse for any Spanish verse
+- ✅ **New `fetchEnglishVerse()` Method**: Direct API call to English Bible
+- ✅ **Fallback Dictionary**: Preserved word dictionary for hover tooltips and API failure fallback
+- ✅ **Spanish-to-English Book Mapping**: Complete mapping for all 66 books
+
+### BibleContext Updates
+- ✅ **Added `isTranslating` State**: Separate loading indicator for translation operations
+- ✅ **Smart Toggle Behavior**: First click fetches, subsequent clicks show/hide cached translation
+- ✅ **Auto-Clear on Verse Change**: Translation resets when navigating to new verses
+
+### UI Improvements
+- ✅ **Translation Loading Indicator**: Shows "Cargando traducción al inglés (KJV)..."
+- ✅ **KJV Label**: Displays "(KJV - King James Version)" in translation header
+- ✅ **Italic Styling**: English translation text styled distinctly
 
 ## Next Steps
-1. **Deploy to Vercel**: Upload project to Vercel with domain-restricted API key
-2. **Test API Integration**: Verify Biblia.com API works with Vercel domain
-3. **Monitor Performance**: Track API response times and error rates
-4. **User Testing**: Validate Spanish Bible reading functionality
-5. **Security Review**: Regenerate API key for production use
+1. **Implement Word-by-Word Translation**: Expand hover tooltips with better dictionary
+2. **Word Alignment Feature**: Align Spanish words with English equivalents from KJV
+3. **Performance Optimization**: Add prefetching for adjacent verses
+4. **Offline Support**: Cache verses for offline reading
+5. **Additional Bible Versions**: Support multiple Spanish/English translations
 
 ## Active Decisions
-- **API Provider**: Using Biblia.com API with RVR60 Bible ID for Spanish content
-- **Domain Restriction**: API key restricted to Vercel domains for security
-- **Error Handling Strategy**: Comprehensive logging with user-friendly error messages
-- **Component Architecture**: Dedicated SpanishBibleReader component with built-in diagnostics
-- **Deployment Target**: Vercel with proper environment variable configuration
+- **Spanish Bible API**: Using free `biblia-api.vercel.app` (RVR60, no key required)
+- **English Bible API**: Using free `bible-api.com` (KJV, no key required)
+- **Translation Strategy**: Fetch actual KJV verses rather than machine translation
+- **Word-by-Word Approach**: Dictionary-based with future alignment to verse translation
+- **Caching Strategy**: 24-hour cache for both Spanish and English verses
 
 ## Important Patterns
-- **API-First Architecture**: Removed all mock data, using only Biblia.com API
-- **Enhanced Error Handling**: Multi-level error detection and user feedback
-- **Built-in Diagnostics**: "Probar Conexión" button for immediate API testing
-- **Security Best Practices**: Environment variable protection and domain restrictions
-- **Vercel Optimization**: Deployment-ready configuration with caching and performance tuning
+- **Unicode Normalization**: Always normalize accented characters before API lookups
+- **Dual API Architecture**: Separate routes for Spanish (RVR60) and English (KJV) content
+- **Translation Caching**: Cache at multiple levels (verse, word, API response)
+- **Graceful Fallback**: Dictionary translation when Bible API unavailable
+- **Separate Loading States**: `isLoading` for verses, `isTranslating` for translations
 
-## Learnings (December 2025)
-- **API Integration Challenges**: Domain-restricted API keys require careful configuration
-- **Error Handling Importance**: Comprehensive error messages improve user experience significantly
-- **Built-in Testing Tools**: Diagnostic buttons help identify issues quickly
-- **Security Considerations**: API key exposure requires immediate regeneration
-- **Vercel Configuration**: Environment variables must be properly configured across all environments
-- **User Experience**: Spanish error messages and troubleshooting steps improve usability
-- **Debugging Process**: Comprehensive logging helps identify API integration issues
-- **Deployment Preparation**: Detailed documentation ensures smooth production deployment
+## Learnings (December 2025 - This Session)
+- **Unicode NFD Normalization**: Essential for matching accented Spanish characters to API keys
+- **Free Bible APIs**: bible-api.com and biblia-api.vercel.app provide quality content without API keys
+- **KJV for Translation**: King James Version provides scholarly English that matches RVR60 style
+- **Separate Loading States**: Better UX when verse loading and translation are independent
+- **Toggle State Management**: Cache translations to enable instant show/hide
 
 ## Current Status
-- **API Integration**: ✅ Complete with Biblia.com
-- **Error Handling**: ✅ Enhanced with detailed logging
-- **UI Components**: ✅ Spanish Bible reader with diagnostics
-- **Documentation**: ✅ Complete deployment guide
-- **Vercel Ready**: ✅ Configuration complete
-- **Testing Tools**: ✅ Built-in API testing functionality
+- **Spanish Bible API**: ✅ Working with free biblia-api.vercel.app
+- **English Translation**: ✅ Working with bible-api.com (KJV)
+- **Unicode Handling**: ✅ Fixed with NFD normalization
+- **Translation Button**: ✅ Fully functional
+- **Word Tooltips**: ✅ Dictionary-based (ready for enhancement)
+- **Caching**: ✅ 24-hour cache for verses and translations
+- **Error Handling**: ✅ Comprehensive with fallbacks

@@ -855,6 +855,214 @@ https://your-project-name.vercel.app/api/bible?bible=RVR60&passage=Juan+3:16&for
 9. **API-Only Architecture**: Removing mock data simplifies architecture but requires robust error handling
 10. **Continuous Learning**: Each integration challenge provides valuable lessons for future projects
 
+## Unicode Normalization for Internationalization (December 2025)
+
+### The Accented Character Problem
+**Issue**: Spanish book names like "Génesis", "Éxodo", "Números" contain accented characters that can cause 404 errors when URL-encoded and decoded differently across systems.
+
+**Root Cause**: URL encoding transforms "Génesis" to "G%C3%A9nesis". When decoded, character encoding differences can cause lookup mismatches in book name mappings.
+
+**Solution**: Unicode NFD Normalization
+```typescript
+/**
+ * Normalize text by removing accents/diacritics and converting to lowercase
+ * This ensures consistent matching regardless of character encoding
+ */
+function normalizeText(text: string): string {
+  return text
+    .normalize('NFD')                          // Decompose accented characters
+    .replace(/[\u0300-\u036f]/g, '')           // Remove diacritical marks
+    .toLowerCase()                              // Lowercase for consistent matching
+    .trim();                                    // Remove whitespace
+}
+
+// Usage: normalizeText("Génesis") → "genesis"
+// Usage: normalizeText("Éxodo") → "exodo"
+// Usage: normalizeText("Números") → "numeros"
+```
+
+**Key Insights**:
+- Always normalize BOTH the input AND the lookup keys
+- NFD (Canonical Decomposition) separates base characters from combining marks
+- The regex `[\u0300-\u036f]` matches all combining diacritical marks
+- This pattern works for Spanish, French, Portuguese, and most Latin-script languages
+
+### Normalized Book Name Mapping Pattern
+```typescript
+// Keys are normalized (no accents, lowercase) for reliable matching
+const bookNameMapping: Record<string, string> = {
+  'genesis': 'genesis',      // Génesis → genesis
+  'exodo': 'exodo',          // Éxodo → exodo
+  'levitico': 'levitico',    // Levítico → levitico
+  'numeros': 'numeros',      // Números → numeros
+  // ... all 66 books
+};
+
+// Lookup with normalized input
+const normalizedInput = normalizeText(spanishBookName);
+const apiBookName = bookNameMapping[normalizedInput] || normalizedInput;
+```
+
+## English Bible Translation Architecture (December 2025)
+
+### Using Real Bible Verses vs Machine Translation
+**Decision**: Fetch actual English Bible verses (KJV) rather than using machine translation.
+
+**Benefits**:
+1. **Scholarly Accuracy**: KJV is a respected, accurate translation
+2. **Consistent Terminology**: Biblical terms remain consistent
+3. **No API Costs**: bible-api.com is free with no rate limits
+4. **Future Word Alignment**: Same verse structure enables word-by-word mapping
+5. **Faster Response**: Simple API call vs complex translation processing
+
+### Bible API Architecture
+```typescript
+// Spanish Bible: biblia-api.vercel.app (RVR60)
+// English Bible: bible-api.com (KJV)
+
+// Spanish API Route: /api/bible
+const spanishApiUrl = `https://biblia-api.vercel.app/api/v1/${book}/${chapter}/${verse}`;
+
+// English API Route: /api/bible/english  
+const englishApiUrl = `https://bible-api.com/${englishBook}+${chapter}:${verse}?translation=kjv`;
+```
+
+### Spanish-to-English Book Name Mapping
+```typescript
+const spanishToEnglishBooks: Record<string, string> = {
+  // Old Testament
+  'genesis': 'Genesis',
+  'exodo': 'Exodus',
+  'levitico': 'Leviticus',
+  // ... 
+  'cantares': 'Song of Solomon',  // Note: Different English name
+  // New Testament
+  'mateo': 'Matthew',
+  'santiago': 'James',            // Note: Different English name
+  'apocalipsis': 'Revelation',    // Note: Different English name
+  // ... all 66 books
+};
+```
+
+### TranslationService Enhancement
+```typescript
+export class TranslationService {
+  /**
+   * Translate a verse by fetching the corresponding English Bible verse
+   */
+  async translateVerse(
+    spanishBook: string, 
+    chapter: number, 
+    verse: number, 
+    spanishText: string
+  ): Promise<TranslationResult> {
+    const cacheKey = `verse-translation-${spanishBook}-${chapter}-${verse}`;
+    const cached = this.cache.getCachedData(cacheKey);
+    if (cached) return cached;
+
+    try {
+      // Fetch the corresponding English verse from KJV
+      const englishVerse = await this.fetchEnglishVerse(spanishBook, chapter, verse);
+
+      const result: TranslationResult = {
+        originalText: spanishText,
+        translatedText: englishVerse.text,
+        fromLanguage: 'es',
+        toLanguage: 'en',
+        timestamp: new Date().toISOString(),
+        source: 'bible-api'  // Track translation source
+      };
+
+      this.cache.setCachedData(cacheKey, result, 86400); // 24-hour cache
+      return result;
+    } catch (error) {
+      // Fallback to dictionary-based translation if API fails
+      return this.translateTextWithDictionary(spanishText);
+    }
+  }
+}
+```
+
+### Separate Loading States Pattern
+**Problem**: Using a single `isLoading` state for both verse fetching and translation causes confusing UX.
+
+**Solution**: Add dedicated `isTranslating` state
+```typescript
+interface BibleState {
+  isLoading: boolean;      // For verse fetching
+  isTranslating: boolean;  // For translation operations
+  // ...
+}
+
+// In reducer
+case 'SET_TRANSLATING':
+  return { ...state, isTranslating: action.payload };
+case 'SET_TRANSLATED_TEXT':
+  return { ...state, translatedText: action.payload, isTranslating: false };
+
+// In UI
+{state.isTranslating && (
+  <div>Cargando traducción al inglés (KJV)...</div>
+)}
+```
+
+### Translation Toggle Behavior
+```typescript
+const translateVerse = async () => {
+  // If translation is already showing, just toggle it off
+  if (state.showTranslation) {
+    dispatch({ type: 'TOGGLE_TRANSLATION' });
+    return;
+  }
+
+  // If we already have a translation cached, just show it
+  if (state.translatedText) {
+    dispatch({ type: 'TOGGLE_TRANSLATION' });
+    return;
+  }
+
+  // Otherwise fetch new translation
+  try {
+    dispatch({ type: 'SET_TRANSLATING', payload: true });
+    const result = await translationService.translateVerse(...);
+    dispatch({ type: 'SET_TRANSLATED_TEXT', payload: result.translatedText });
+    dispatch({ type: 'TOGGLE_TRANSLATION' }); // Show the translation
+  } catch (error) {
+    dispatch({ type: 'SET_TRANSLATING', payload: false });
+    dispatch({ type: 'SET_ERROR', payload: error.message });
+  }
+};
+```
+
+### Auto-Clear Translation on Verse Change
+```typescript
+case 'SET_VERSE_TEXT':
+  // Clear translated text when verse changes (will be refetched on translate)
+  return { 
+    ...state, 
+    verseText: action.payload, 
+    translatedText: '',        // Clear old translation
+    showTranslation: false,    // Hide translation panel
+    isLoading: false 
+  };
+```
+
+## Free Bible API Resources (December 2025)
+
+### Recommended Free APIs
+| API | Content | Key Required | Rate Limit |
+|-----|---------|--------------|------------|
+| `biblia-api.vercel.app` | Spanish RVR60 | No | Unlimited |
+| `bible-api.com` | KJV, WEB, ASV | No | Unlimited |
+| `bible-go-api.rkeplin.com` | Multiple versions | No | Reasonable |
+
+### Why Free APIs Over Paid Services
+1. **Simpler Deployment**: No API key management
+2. **No Domain Restrictions**: Works anywhere without configuration
+3. **Cost Effective**: Zero ongoing costs
+4. **Reliable**: Community-maintained, high availability
+5. **Sufficient Features**: Verse-level access is all we need
+
 ## Key Takeaways
 
 1. **API Selection Matters**: Verify API endpoints and CORS policies early
@@ -873,3 +1081,9 @@ https://your-project-name.vercel.app/api/bible?bible=RVR60&passage=Juan+3:16&for
 14. **Deployment Preparation**: Thorough preparation including environment configuration and domain registration is essential
 15. **API-Only Architecture**: Removing mock data simplifies architecture but requires robust error handling
 16. **Continuous Learning**: Each integration challenge provides valuable lessons for future projects
+17. **Unicode Normalization**: Always normalize accented characters using NFD before lookups
+18. **Free APIs First**: Evaluate free Bible APIs before paid services - often sufficient
+19. **Real Translations Over Machine**: Using actual Bible verses provides better accuracy than machine translation
+20. **Separate Loading States**: Different operations (fetch vs translate) deserve separate loading indicators
+21. **Toggle State Optimization**: Cache translations and toggle visibility rather than re-fetching
+22. **Auto-Clear Strategy**: Clear dependent data (translations) when source data (verses) changes

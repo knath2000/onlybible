@@ -3,34 +3,40 @@
 ## What Works ✅
 - **Architecture design completed** - Comprehensive system architecture documented
 - **UI wireframes created** - Complete glassmorphic design system implemented
-- **API integration completed** - Biblia.com API with RVR60 (Reina-Valera 1960) fully integrated
+- **Spanish Bible API working** - Free biblia-api.vercel.app with RVR60 (no API key needed)
+- **English Translation working** - bible-api.com with KJV for verse translations
 - **Memory bank initialized** - Complete documentation system established
 - **System patterns documented** - All architectural patterns and decisions recorded
 - **Verse selector functionality** - Fixed and working correctly
 - **Error handling system** - Comprehensive error logging and user feedback
 - **Spanish Bible reader** - Dedicated component with built-in diagnostics
+- **Translation button** - Fetches and displays KJV English verses
+- **Unicode normalization** - Handles accented Spanish book names (Génesis, Éxodo, etc.)
 - **Vercel deployment ready** - Complete deployment configuration and guide
-- **Environment configuration** - Proper API key and environment variable setup
+- **Caching system** - 24-hour cache for verses and translations
 
 ## What's Left to Build
-- **Production deployment** - Upload to Vercel and test domain-restricted API key
-- **API validation** - Verify Biblia.com API works with Vercel domain
+- **Word-by-word translation enhancement** - Improve dictionary and add word alignment
+- **Multiple Bible versions** - Support additional Spanish/English translations
+- **Offline support** - Cache verses for offline reading
 - **Performance monitoring** - Set up analytics and error tracking
-- **User testing** - Validate Spanish Bible reading functionality
-- **Security hardening** - Regenerate API key for production use
+- **Verse range support** - Display multiple verses at once
+- **Search functionality** - Search for verses by keyword
 
 ## Current Status
 - **Architecture phase**: ✅ Complete
 - **Design phase**: ✅ Complete
 - **Implementation phase**: ✅ Complete
-- **API integration phase**: ✅ Complete
+- **Spanish API integration**: ✅ Complete (biblia-api.vercel.app)
+- **English API integration**: ✅ Complete (bible-api.com/KJV)
+- **Translation feature**: ✅ Complete and working
 - **Testing phase**: ✅ Enhanced with built-in diagnostics
 - **Deployment phase**: ✅ Ready for production
 
 ## Known Issues
-- **API Key Security**: Current API key has been exposed and needs regeneration for production
-- **Domain Configuration**: Requires Vercel domain registration with Biblia.com
-- **Network Dependencies**: Success depends on Biblia.com API availability and domain restrictions
+- **Word Dictionary Limited**: Current dictionary has ~130 common words; needs expansion for comprehensive tooltips
+- **Single Verse Display**: Currently shows one verse at a time; chapter view would improve UX
+- **No Offline Support**: Requires internet connection for all operations
 
 ## Evolution of Project Decisions
 1. **Initial Requirements**: Basic Spanish Bible reading with translation
@@ -50,6 +56,11 @@
 15. **Verse Selector Fix**: Resolved missing verse population logic
 16. **Vercel Deployment**: Created complete deployment configuration and guide
 17. **Built-in Diagnostics**: Added "Probar Conexión" testing functionality
+18. **Unicode Normalization Fix**: Added NFD normalization for accented Spanish book names
+19. **Free API Migration**: Switched to free APIs (no API keys required)
+20. **English Bible Integration**: Added bible-api.com for KJV translations
+21. **Translation Button Fix**: Implemented proper fetch and toggle behavior
+22. **Separate Loading States**: Added isTranslating for better UX
 
 ## Version History
 - **v0.1**: Initial architecture and requirements
@@ -65,6 +76,9 @@
 - **v1.1**: Mock data removal and API-only architecture
 - **v1.2**: Verse selector fix and Spanish Bible reader
 - **v1.3**: Vercel deployment preparation and documentation
+- **v1.4**: Unicode normalization fix for accented book names
+- **v1.5**: Free API migration (no keys required)
+- **v1.6**: English Bible translation with KJV (bible-api.com)
 
 ## Current Project State (December 2025)
-The project has successfully transitioned from development to deployment-ready status. All core features are implemented, API integration is complete with Biblia.com, and the application is configured for Vercel deployment with proper error handling and user experience enhancements.
+The project is fully functional with both Spanish Bible reading (RVR60) and English translation (KJV) capabilities. All core features work without requiring API keys, making deployment simple. The translation button properly fetches KJV verses, and Unicode handling ensures all 66 books work correctly regardless of accented characters. Ready for production deployment and future enhancements like word-by-word alignment.

@@ -18,7 +18,6 @@ export interface BibleChapter {
 }
 
 export class BibleService {
-  private apiUrl = 'https://api.biblia.com/v1';
   private cache: CacheService;
   private useMockData: boolean = false; // Set to false to use ONLY Biblia.com API
 
@@ -60,6 +59,16 @@ export class BibleService {
       return result;
     } catch (error) {
       console.error('Error fetching verse from Biblia.com:', error);
+      
+      // Provide more specific error messages
+      if (error instanceof TypeError && error.message.includes('fetch')) {
+        throw new Error('Unable to connect to Bible API. Please check your internet connection and try again.');
+      }
+      
+      if (error instanceof Error && error.message.includes('HTTP error')) {
+        throw new Error(`Bible API returned an error (${error.message}). Please verify the verse reference and try again.`);
+      }
+      
       throw error; // Re-throw error to be handled by calling component
     }
   }
@@ -109,6 +118,16 @@ export class BibleService {
       return result;
     } catch (error) {
       console.error('Error fetching chapter from Biblia.com:', error);
+      
+      // Provide more specific error messages
+      if (error instanceof TypeError && error.message.includes('fetch')) {
+        throw new Error('Unable to connect to Bible API. Please check your internet connection and try again.');
+      }
+      
+      if (error instanceof Error && error.message.includes('HTTP error')) {
+        throw new Error(`Bible API returned an error (${error.message}). Please verify the chapter reference and try again.`);
+      }
+      
       throw error; // Re-throw error to be handled by calling component
     }
   }
@@ -195,5 +214,70 @@ export class BibleService {
   // Method to switch between mock and real API
   setUseMockData(useMock: boolean): void {
     this.useMockData = useMock;
+  }
+
+  /**
+   * Test API connectivity with a simple verse
+   * Returns diagnostic information about the API connection
+   */
+  async testConnection(): Promise<{
+    success: boolean;
+    message: string;
+    details?: any;
+  }> {
+    try {
+      console.log('Testing Bible API connection...');
+      
+      // Test with John 3:16 (commonly used test verse)
+      const testVerse = await this.fetchVerse('Juan', 3, 16);
+      
+      if (testVerse && testVerse.text && testVerse.text.length > 0) {
+        console.log('Bible API connection test successful:', testVerse);
+        return {
+          success: true,
+          message: 'Bible API connection successful',
+          details: {
+            reference: testVerse.reference,
+            textLength: testVerse.text.length,
+            translation: testVerse.translation
+          }
+        };
+      } else {
+        throw new Error('Received empty or invalid response from API');
+      }
+    } catch (error) {
+      console.error('Bible API connection test failed:', error);
+      
+      let errorMessage = 'Unknown error';
+      let errorDetails = {};
+      
+      if (error instanceof Error) {
+        errorMessage = error.message;
+        errorDetails = {
+          name: error.name,
+          stack: error.stack
+        };
+      }
+      
+      // Provide specific guidance based on error type
+      let userMessage = errorMessage;
+      if (errorMessage.includes('Unable to connect')) {
+        userMessage = 'Cannot connect to Bible API. Please check your internet connection.';
+      } else if (errorMessage.includes('HTTP error')) {
+        userMessage = 'Bible API returned an error. The service may be temporarily unavailable.';
+      } else if (errorMessage.includes('API key')) {
+        userMessage = 'API key configuration issue. Please check environment variables.';
+      }
+      
+      return {
+        success: false,
+        message: userMessage,
+        details: {
+          error: errorMessage,
+          technicalDetails: errorDetails,
+          timestamp: new Date().toISOString()
+        }
+      };
+    }
   }
 }

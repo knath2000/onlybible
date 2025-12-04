@@ -7,6 +7,7 @@ import { LoadingSpinner } from './LoadingSpinner';
 import { WordTranslationTooltip } from './WordTranslationTooltip';
 import { SettingsPanel } from './SettingsPanel';
 import { SearchPanel } from './SearchPanel';
+import { bibleService } from '../lib/api';
 
 export const BibleReader: React.FC = () => {
   const {
@@ -23,6 +24,11 @@ export const BibleReader: React.FC = () => {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [fontSize, setFontSize] = useState(16);
+  const [isTestingConnection, setIsTestingConnection] = useState(false);
+  const [connectionTestResult, setConnectionTestResult] = useState<{
+    success: boolean;
+    message: string;
+  } | null>(null);
 
   // Load settings from localStorage
   useEffect(() => {

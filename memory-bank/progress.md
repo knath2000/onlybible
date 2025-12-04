@@ -11,8 +11,6 @@
 - **Spanish Bible reader** - Dedicated component with built-in diagnostics
 - **Vercel deployment ready** - Complete deployment configuration and guide
 - **Environment configuration** - Proper API key and environment variable setup
-- **404 Error Resolution** - Critical API endpoint issue fixed in BibleService.ts
-- **Production deployment ready** - Application now properly configured for Vercel with correct API integration
 
 ## What's Left to Build
 - **Production deployment** - Upload to Vercel and test domain-restricted API key

@@ -264,7 +264,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
         resolvedBook: book,
         chapter,
         verse,
-        passage: cleanPassage
+        passage: passage
       },
       { status: 500 }
     );

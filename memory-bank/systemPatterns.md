@@ -16,6 +16,7 @@
 5. **Error Handling**: Comprehensive error boundaries with fallback dictionary
 6. **UI Framework**: Glassmorphic design with Tailwind CSS
 7. **State Management**: React Context + useReducer with separate loading states
+8. **Context-Aware Translation**: Word translations are disambiguated using the full verse context
 
 ## Design Patterns
 
@@ -53,6 +54,15 @@ else if (translatedText) toggle();       // Show cached
 else fetchAndShow();                      // Fetch new
 ```
 
+### Background Fetch Pattern
+```typescript
+// In fetchVerse (Verse Loaded)
+dispatch(SET_VERSE_TEXT);
+// Immediately trigger translation fetch silently
+fetchEnglishVerse().then(data => dispatch(SET_TRANSLATED_TEXT));
+// This ensures context is ready for word hover tooltips immediately
+```
+
 ## Component Relationships
 ```
 BibleProvider (Context)
@@ -78,6 +88,8 @@ User selects verse → setBook/setChapter/setVerse
     → biblia-api.vercel.app
     → dispatch SET_VERSE_TEXT
     → Clear translatedText & showTranslation
+    → [Background] TranslationService.fetchEnglishVerse()
+    → [Background] dispatch SET_TRANSLATED_TEXT (Silent)
 ```
 
 ### Translation Flow
@@ -86,7 +98,7 @@ User clicks "Traducir Versículo"
     → translateVerse()
     → Check: showTranslation? → TOGGLE_TRANSLATION (hide)
     → Check: translatedText? → TOGGLE_TRANSLATION (show cached)
-    → dispatch SET_TRANSLATING
+    → dispatch SET_TRANSLATING (if not cached)
     → TranslationService.translateVerse()
     → /api/bible/english?book=...
     → bible-api.com (KJV)
@@ -99,8 +111,10 @@ User clicks "Traducir Versículo"
 User hovers over word
     → WordTranslationTooltip.handleMouseEnter()
     → translateWord()
-    → TranslationService.translateWord()
-    → Dictionary lookup (normalized)
+    → TranslationService.translateWord(word, contextVerse)
+    → Dictionary lookup (normalized) -> candidates[]
+    → Fuzzy Match: Check which candidate exists in contextVerse
+    → Return best match
     → Show tooltip
 ```
 
@@ -109,6 +123,7 @@ User hovers over word
 2. **Translation**: Button → Context Method → Service → API → Context → UI
 3. **Error Handling**: API Error → Fallback Dictionary → User Notification
 4. **Caching**: Check Cache → Fetch if Missing → Store with TTL → Return
+5. **Word Disambiguation**: Dictionary Candidates + Verse Context → Best Translation
 
 ## API Route Patterns
 

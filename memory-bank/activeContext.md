@@ -1,67 +1,68 @@
 # Active Context: Current Development Status
 
 ## Current Work Focus
-- **Translation Feature Completed**: Successfully implemented English Bible translation using KJV via bible-api.com
-- **API Architecture Optimized**: Switched to free APIs (biblia-api.vercel.app + bible-api.com) requiring no API keys
-- **Unicode Normalization Fixed**: Resolved 404 errors caused by accented Spanish book names
+- **UI Redesign Completed**: Replaced standard interface with elegant "Luminous Verses" inspired design (Quran reader style)
+- **Translation Accuracy Improved**: Implemented Context-Aware Fuzzy Matching for word translations
+- **Deployment Fixed**: Resolved duplicate key errors in TypeScript build
+- **User Experience Enhanced**: Added floating controls, gold accents, and smoother interactions
 
 ## Recent Changes (December 4, 2025 - Latest Session)
 
+### UI Redesign (Luminous Verses Style)
+- ✅ **New Verse Reader Layout**: Elegant, centered card design with large typography (Playfair Display)
+- ✅ **Gold Aesthetics**: Implemented gold gradients, scrollbars, and highlights matching the "Palabra Luminosa" theme
+- ✅ **Floating Controls**: Added fixed back button and settings toggle for cleaner interface
+- ✅ **Spacing Fix**: Resolved word concatenation issue using proper span spacing strategy
+
+### Translation Engine Enhancements
+- ✅ **Context-Aware Fuzzy Matching**: Word translations now check the actual KJV English verse to pick the correct synonym (e.g., "tierra" -> "earth" vs "land")
+- ✅ **Background Fetching**: English verse is silently fetched on load to ensure context is available for immediate hover
+- ✅ **Expanded Dictionary**: Significantly increased the internal dictionary with 200+ common biblical terms
+- ✅ **Duplicate Key Fix**: Resolved TypeScript errors caused by duplicate keys (`fue`, `santo`) in translation dictionary
+
 ### API & Translation Fixes
-- ✅ **Fixed 404 Error for Accented Books**: Added `normalizeText()` function to handle Unicode NFD normalization for Spanish book names (Génesis → genesis)
+- ✅ **Fixed 404 Error for Accented Books**: Added `normalizeText()` function to handle Unicode NFD normalization
 - ✅ **Switched to Free Spanish Bible API**: Now using `biblia-api.vercel.app` (no API key required)
 - ✅ **Implemented English Translation API**: New `/api/bible/english` route using `bible-api.com` for KJV verses
 - ✅ **Fixed "Traducir Versículo" Button**: Now fetches and displays real KJV English Bible verses
 
-### TranslationService Enhancements
-- ✅ **New `translateVerse()` Method**: Fetches corresponding KJV verse for any Spanish verse
-- ✅ **New `fetchEnglishVerse()` Method**: Direct API call to English Bible
-- ✅ **Fallback Dictionary**: Preserved word dictionary for hover tooltips and API failure fallback
-- ✅ **Spanish-to-English Book Mapping**: Complete mapping for all 66 books
-
 ### BibleContext Updates
+- ✅ **Context Propagation**: `translateWord` now accepts full verse context
 - ✅ **Added `isTranslating` State**: Separate loading indicator for translation operations
 - ✅ **Smart Toggle Behavior**: First click fetches, subsequent clicks show/hide cached translation
-- ✅ **Auto-Clear on Verse Change**: Translation resets when navigating to new verses
-
-### UI Improvements
-- ✅ **Translation Loading Indicator**: Shows "Cargando traducción al inglés (KJV)..."
-- ✅ **KJV Label**: Displays "(KJV - King James Version)" in translation header
-- ✅ **Italic Styling**: English translation text styled distinctly
 
 ## Next Steps
-1. **Implement Word-by-Word Translation**: Expand hover tooltips with better dictionary
-2. **Word Alignment Feature**: Align Spanish words with English equivalents from KJV
-3. **Performance Optimization**: Add prefetching for adjacent verses
-4. **Offline Support**: Cache verses for offline reading
-5. **Additional Bible Versions**: Support multiple Spanish/English translations
+1. **Word Alignment Feature**: Further refine fuzzy matching to handle complex alignments
+2. **Performance Optimization**: Add prefetching for adjacent verses
+3. **Offline Support**: Cache verses for offline reading
+4. **Additional Bible Versions**: Support multiple Spanish/English translations
+5. **Search Functionality**: Add global search across the Bible
 
 ## Active Decisions
-- **Spanish Bible API**: Using free `biblia-api.vercel.app` (RVR60, no key required)
-- **English Bible API**: Using free `bible-api.com` (KJV, no key required)
-- **Translation Strategy**: Fetch actual KJV verses rather than machine translation
-- **Word-by-Word Approach**: Dictionary-based with future alignment to verse translation
+- **Design Philosophy**: "Luminous" aesthetic with dark purple backgrounds and gold accents
+- **Translation Strategy**: Hybrid approach using Dictionary + Real KJV Verse Context for maximum accuracy
+- **Spanish Bible API**: Using free `biblia-api.vercel.app` (RVR60)
+- **English Bible API**: Using free `bible-api.com` (KJV)
 - **Caching Strategy**: 24-hour cache for both Spanish and English verses
 
 ## Important Patterns
+- **Context-Aware Translation**: Always check if a dictionary candidate exists in the target verse before returning
+- **Background Fetching**: Fetch dependent data (translations) silently to improve perceived performance
 - **Unicode Normalization**: Always normalize accented characters before API lookups
 - **Dual API Architecture**: Separate routes for Spanish (RVR60) and English (KJV) content
-- **Translation Caching**: Cache at multiple levels (verse, word, API response)
 - **Graceful Fallback**: Dictionary translation when Bible API unavailable
-- **Separate Loading States**: `isLoading` for verses, `isTranslating` for translations
 
 ## Learnings (December 2025 - This Session)
+- **TypeScript Strictness**: Object literals cannot have duplicate keys even if values differ; use arrays or distinct keys
+- **Context-Awareness**: Word-for-word translation quality jumps significantly when constrained by the known full translation
+- **Visual Hierarchy**: Centered, spacious layouts (like Quran readers) improve focus on sacred text
 - **Unicode NFD Normalization**: Essential for matching accented Spanish characters to API keys
 - **Free Bible APIs**: bible-api.com and biblia-api.vercel.app provide quality content without API keys
-- **KJV for Translation**: King James Version provides scholarly English that matches RVR60 style
-- **Separate Loading States**: Better UX when verse loading and translation are independent
-- **Toggle State Management**: Cache translations to enable instant show/hide
 
 ## Current Status
+- **UI/UX**: ✅ "Luminous Verses" design implemented
 - **Spanish Bible API**: ✅ Working with free biblia-api.vercel.app
 - **English Translation**: ✅ Working with bible-api.com (KJV)
-- **Unicode Handling**: ✅ Fixed with NFD normalization
-- **Translation Button**: ✅ Fully functional
-- **Word Tooltips**: ✅ Dictionary-based (ready for enhancement)
+- **Word-by-Word**: ✅ Context-Aware with expanded dictionary
+- **Deployment**: ✅ Build errors resolved
 - **Caching**: ✅ 24-hour cache for verses and translations
-- **Error Handling**: ✅ Comprehensive with fallbacks

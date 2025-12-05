@@ -1,12 +1,12 @@
 # Progress: Current Development Status
 
 ## What Works ✅
+- **UI Redesign (Luminous Verses)** - Elegant dark/gold theme with glassmorphic cards
+- **Context-Aware Translation** - Word tooltips match the actual KJV English verse
 - **Architecture design completed** - Comprehensive system architecture documented
-- **UI wireframes created** - Complete glassmorphic design system implemented
 - **Spanish Bible API working** - Free biblia-api.vercel.app with RVR60 (no API key needed)
 - **English Translation working** - bible-api.com with KJV for verse translations
 - **Memory bank initialized** - Complete documentation system established
-- **System patterns documented** - All architectural patterns and decisions recorded
 - **Verse selector functionality** - Fixed and working correctly
 - **Error handling system** - Comprehensive error logging and user feedback
 - **Spanish Bible reader** - Dedicated component with built-in diagnostics
@@ -16,7 +16,7 @@
 - **Caching system** - 24-hour cache for verses and translations
 
 ## What's Left to Build
-- **Word-by-word translation enhancement** - Improve dictionary and add word alignment
+- **Advanced Word Alignment** - Visual mapping lines between Spanish and English words
 - **Multiple Bible versions** - Support additional Spanish/English translations
 - **Offline support** - Cache verses for offline reading
 - **Performance monitoring** - Set up analytics and error tracking
@@ -25,7 +25,7 @@
 
 ## Current Status
 - **Architecture phase**: ✅ Complete
-- **Design phase**: ✅ Complete
+- **Design phase**: ✅ Complete (Redesigned Dec 2025)
 - **Implementation phase**: ✅ Complete
 - **Spanish API integration**: ✅ Complete (biblia-api.vercel.app)
 - **English API integration**: ✅ Complete (bible-api.com/KJV)
@@ -34,7 +34,7 @@
 - **Deployment phase**: ✅ Ready for production
 
 ## Known Issues
-- **Word Dictionary Limited**: Current dictionary has ~130 common words; needs expansion for comprehensive tooltips
+- **Word Dictionary Coverage**: Dictionary expanded to ~300 words but covers only common terms; uncommon words fallback to original.
 - **Single Verse Display**: Currently shows one verse at a time; chapter view would improve UX
 - **No Offline Support**: Requires internet connection for all operations
 
@@ -61,6 +61,8 @@
 20. **English Bible Integration**: Added bible-api.com for KJV translations
 21. **Translation Button Fix**: Implemented proper fetch and toggle behavior
 22. **Separate Loading States**: Added isTranslating for better UX
+23. **UI Redesign**: Adopted "Luminous Verses" aesthetic (dark purple/gold)
+24. **Context-Aware Translation**: Implemented fuzzy matching against KJV text
 
 ## Version History
 - **v0.1**: Initial architecture and requirements
@@ -79,6 +81,7 @@
 - **v1.4**: Unicode normalization fix for accented book names
 - **v1.5**: Free API migration (no keys required)
 - **v1.6**: English Bible translation with KJV (bible-api.com)
+- **v1.7**: UI Redesign ("Luminous Verses") & Context-Aware Translation
 
 ## Current Project State (December 2025)
-The project is fully functional with both Spanish Bible reading (RVR60) and English translation (KJV) capabilities. All core features work without requiring API keys, making deployment simple. The translation button properly fetches KJV verses, and Unicode handling ensures all 66 books work correctly regardless of accented characters. Ready for production deployment and future enhancements like word-by-word alignment.
+The project features a polished "Luminous Verses" design with a robust reading experience. It fully supports Spanish (RVR60) and English (KJV) integration. The translation system is now context-aware, providing accurate word-for-word translations by cross-referencing the dictionary with the actual English verse text. All build issues have been resolved, and the application is ready for production deployment.

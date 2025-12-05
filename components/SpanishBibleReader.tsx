@@ -1,10 +1,12 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useBible } from '../lib/context/BibleContext';
+import { translationService } from '../lib/api';
 import { GlassCard, GlassButton } from './ui';
 import { LoadingSpinner } from './LoadingSpinner';
 import { WordTranslationTooltip } from './WordTranslationTooltip';
+import { AlignmentOverlay } from './AlignmentOverlay';
 
 interface BibleError {
   error: string;
@@ -26,6 +28,28 @@ export const SpanishBibleReader: React.FC = () => {
     setVerse,
     setTranslationMode
   } = useBible();
+
+  // Alignment State
+  const [hoveredWordIndex, setHoveredWordIndex] = useState<number | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const spanishWordRefs = useRef<(HTMLElement | null)[]>([]);
+  const englishWordRefs = useRef<(HTMLElement | null)[]>([]);
+
+  // Calculate alignment map
+  const alignmentMap = useMemo(() => {
+    if (!state.verseText || !state.translatedText) return new Map<number, number[]>();
+    return translationService.computeAlignment(state.verseText, state.translatedText);
+  }, [state.verseText, state.translatedText]);
+
+  // Reset refs when text changes
+  useEffect(() => {
+    if (state.verseText) {
+      spanishWordRefs.current = new Array(state.verseText.split(' ').length).fill(null);
+    }
+    if (state.translatedText) {
+      englishWordRefs.current = new Array(state.translatedText.split(' ').length).fill(null);
+    }
+  }, [state.verseText, state.translatedText]);
 
   const [error, setError] = useState<BibleError | null>(null);
   const [viewMode, setViewMode] = useState<ViewMode>('home');
@@ -139,6 +163,31 @@ export const SpanishBibleReader: React.FC = () => {
   const goHome = () => {
     setViewMode('home');
   };
+
+  const getOverlayProps = () => {
+    if (hoveredWordIndex === null || !containerRef.current) return null;
+    
+    const spanishEl = spanishWordRefs.current[hoveredWordIndex];
+    if (!spanishEl) return null;
+
+    const spanishRect = spanishEl.getBoundingClientRect();
+    const targetIndices = alignmentMap.get(hoveredWordIndex) || [];
+    
+    const targetRects = targetIndices
+      .map(i => englishWordRefs.current[i]?.getBoundingClientRect())
+      .filter((r): r is DOMRect => !!r);
+      
+    if (targetRects.length === 0) return null;
+    
+    return {
+      active: true,
+      sourceRect: spanishRect,
+      targetRects,
+      containerRect: containerRef.current.getBoundingClientRect()
+    };
+  };
+
+  const overlayProps = getOverlayProps();
 
   // Decorative Diamond Icon
   const DiamondIcon = () => (
@@ -402,19 +451,27 @@ export const SpanishBibleReader: React.FC = () => {
                 <span className="text-white/60">Cargando versículo...</span>
               </div>
             ) : (
-              <div className="text-center">
+              <div className="text-center relative" ref={containerRef}>
+                {/* Alignment Overlay */}
+                {overlayProps && <AlignmentOverlay {...overlayProps} />}
+
                 {/* Verse Number */}
                 <p className="text-[#f5a623] text-xl font-semibold mb-6">
                   {state.currentChapter}:{state.currentVerse}
                 </p>
 
                 {/* Spanish Verse Text - Large and Centered */}
-                <div className="mb-6">
+                <div className="mb-6 relative z-10">
                   <p className="text-white text-2xl sm:text-3xl leading-relaxed font-[family-name:var(--font-playfair)]">
                     {state.verseText.split(' ').map((word, index) => (
-                      <span key={index} className="inline">
+                      <span key={index} className="inline-block">
                         <WordTranslationTooltip word={word}>
-                          <span className="hover:text-[#f5a623] transition-colors cursor-pointer">
+                          <span 
+                            ref={el => { spanishWordRefs.current[index] = el; }}
+                            onMouseEnter={() => setHoveredWordIndex(index)}
+                            onMouseLeave={() => setHoveredWordIndex(null)}
+                            className="hover:text-[#f5a623] transition-colors cursor-pointer"
+                          >
                             {word}
                           </span>
                         </WordTranslationTooltip>{' '}
@@ -435,8 +492,20 @@ export const SpanishBibleReader: React.FC = () => {
                 {state.showTranslation && state.translatedText && !state.isTranslating && (
                   <>
                     <div className="w-full h-px bg-gradient-to-r from-transparent via-white/10 to-transparent mb-4" />
-                    <p className="text-white/80 text-lg leading-relaxed">
-                      {state.translatedText}
+                    <p className="text-white/80 text-lg leading-relaxed relative z-10">
+                      {state.translatedText.split(' ').map((word, index) => (
+                        <span 
+                          key={index}
+                          ref={el => { englishWordRefs.current[index] = el; }}
+                          className={`inline-block transition-colors duration-300 ${
+                            hoveredWordIndex !== null && alignmentMap.get(hoveredWordIndex)?.includes(index)
+                              ? 'text-[#f5a623] font-medium'
+                              : ''
+                          }`}
+                        >
+                          {word}{' '}
+                        </span>
+                      ))}
                     </p>
                   </>
                 )}

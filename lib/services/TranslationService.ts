@@ -519,6 +519,78 @@ export class TranslationService {
   }
 
   /**
+   * Compute alignment between Spanish and English text
+   * Returns a Map where key is Spanish word index and value is array of English word indices
+   */
+  computeAlignment(spanishText: string, englishText: string): Map<number, number[]> {
+    const alignmentMap = new Map<number, number[]>();
+    
+    // Tokenize words (preserving indices)
+    const spanishWords = spanishText.split(' ');
+    const englishWords = englishText.split(' ');
+    
+    // Create a map of English words to their indices for faster lookup
+    // Word -> [index1, index2, ...]
+    const englishWordIndices: Record<string, number[]> = {};
+    englishWords.forEach((word, index) => {
+      const cleanWord = this.normalizeWord(word);
+      if (!englishWordIndices[cleanWord]) {
+        englishWordIndices[cleanWord] = [];
+      }
+      englishWordIndices[cleanWord].push(index);
+    });
+
+    // Iterate through Spanish words to find matches
+    spanishWords.forEach((spanishWord, sIndex) => {
+      const cleanSpanish = this.normalizeWord(spanishWord);
+      const candidates = this.wordDictionary[cleanSpanish];
+      
+      if (!candidates) return;
+      
+      const candidateList = Array.isArray(candidates) ? candidates : [candidates];
+      
+      // Find all potential matches in English text
+      let bestMatchIndices: number[] = [];
+      let bestDistance = Infinity;
+      
+      for (const candidate of candidateList) {
+        const cleanCandidate = this.normalizeWord(candidate);
+        const indices = englishWordIndices[cleanCandidate];
+        
+        if (indices && indices.length > 0) {
+          // Heuristic: Select match closest to relative position
+          // Relative position of Spanish word: sIndex / spanishWords.length
+          // Expected English index: (sIndex / spanishWords.length) * englishWords.length
+          
+          const expectedIndex = (sIndex / spanishWords.length) * englishWords.length;
+          
+          // Find the index closest to expectedIndex
+          const closestIndex = indices.reduce((prev, curr) => {
+            return (Math.abs(curr - expectedIndex) < Math.abs(prev - expectedIndex) ? curr : prev);
+          });
+          
+          // Check if this is the best match so far across all candidates
+          const distance = Math.abs(closestIndex - expectedIndex);
+          
+          if (distance < bestDistance) {
+            bestDistance = distance;
+            bestMatchIndices = [closestIndex];
+          } else if (Math.abs(distance - bestDistance) < 0.1) {
+             // If distance is very similar, include it (ambiguous case)
+             bestMatchIndices.push(closestIndex);
+          }
+        }
+      }
+      
+      if (bestMatchIndices.length > 0) {
+        alignmentMap.set(sIndex, bestMatchIndices);
+      }
+    });
+    
+    return alignmentMap;
+  }
+
+  /**
    * Normalize a word for dictionary lookup
    * Removes punctuation, accents, and converts to lowercase
    */

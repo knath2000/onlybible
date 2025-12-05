@@ -349,9 +349,31 @@ export class TranslationService {
   };
 
   private cache: CacheService;
+  private normalizedDictionary: Record<string, string | string[]> = {};
 
   constructor(cache: CacheService) {
     this.cache = cache;
+    this.initializeNormalizedDictionary();
+  }
+
+  /**
+   * Pre-normalize dictionary keys to handle accents correctly
+   * e.g. 'creó' -> 'creo', 'él' -> 'el'
+   */
+  private initializeNormalizedDictionary() {
+    Object.keys(this.wordDictionary).forEach(key => {
+      const normalizedKey = this.normalizeWord(key);
+      // If key collision occurs (unlikely with current set but possible),
+      // we might want to merge arrays, but for now last write wins
+      // or we can keep both if they map to same value.
+      // A safer approach is to just add the normalized version pointing to the same value
+      this.normalizedDictionary[normalizedKey] = this.wordDictionary[key];
+      
+      // Also keep the original key if it's different (though normalizeWord is used for lookup)
+      if (normalizedKey !== key.toLowerCase()) {
+        this.normalizedDictionary[key.toLowerCase()] = this.wordDictionary[key];
+      }
+    });
   }
 
   /**
@@ -431,7 +453,12 @@ export class TranslationService {
     const translated = text.split(' ').map(word => {
       // Only use the first translation option for full text fallback
       const cleanWord = this.normalizeWord(word);
-      const trans = this.wordDictionary[cleanWord];
+      let trans = this.normalizedDictionary[cleanWord];
+      
+      if (!trans) {
+         trans = this.wordDictionary[word.toLowerCase()];
+      }
+      
       return Array.isArray(trans) ? trans[0] : (trans || word);
     }).join(' ');
 
@@ -471,9 +498,14 @@ export class TranslationService {
     }
 
     const cleanWord = this.normalizeWord(word);
-    let translationCandidates = this.wordDictionary[cleanWord];
+    let translationCandidates = this.normalizedDictionary[cleanWord];
 
-    // If no translation found, return original (capitalized if needed)
+    // If no translation found, try raw lowercase lookup as fallback
+    if (!translationCandidates) {
+       translationCandidates = this.wordDictionary[word.toLowerCase()];
+    }
+
+    // If still no translation found, return original (capitalized if needed)
     if (!translationCandidates) {
       return word;
     }
@@ -543,7 +575,14 @@ export class TranslationService {
     // Iterate through Spanish words to find matches
     spanishWords.forEach((spanishWord, sIndex) => {
       const cleanSpanish = this.normalizeWord(spanishWord);
-      const candidates = this.wordDictionary[cleanSpanish];
+      
+      // Look up in normalized dictionary
+      let candidates = this.normalizedDictionary[cleanSpanish];
+      
+      // Fallback to direct dictionary lookup if normalized failed
+      if (!candidates) {
+        candidates = this.wordDictionary[spanishWord.toLowerCase()];
+      }
       
       if (!candidates) return;
       

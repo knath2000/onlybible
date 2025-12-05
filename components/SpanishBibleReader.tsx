@@ -464,18 +464,21 @@ export const SpanishBibleReader: React.FC = () => {
                 <div className="mb-6 relative z-10">
                   <p className="text-white text-2xl sm:text-3xl leading-relaxed font-[family-name:var(--font-playfair)]">
                     {state.verseText.split(' ').map((word, index) => (
-                      <span key={index} className="inline-block">
-                        <WordTranslationTooltip word={word}>
-                          <span 
-                            ref={el => { spanishWordRefs.current[index] = el; }}
-                            onMouseEnter={() => setHoveredWordIndex(index)}
-                            onMouseLeave={() => setHoveredWordIndex(null)}
-                            className="hover:text-[#f5a623] transition-colors cursor-pointer"
-                          >
-                            {word}
-                          </span>
-                        </WordTranslationTooltip>{' '}
-                      </span>
+                      <React.Fragment key={index}>
+                        <span className="inline-block">
+                          <WordTranslationTooltip word={word}>
+                            <span 
+                              ref={el => { spanishWordRefs.current[index] = el; }}
+                              onMouseEnter={() => setHoveredWordIndex(index)}
+                              onMouseLeave={() => setHoveredWordIndex(null)}
+                              className="hover:text-[#f5a623] transition-colors cursor-pointer"
+                            >
+                              {word}
+                            </span>
+                          </WordTranslationTooltip>
+                        </span>
+                        {index < state.verseText.split(' ').length - 1 && ' '}
+                      </React.Fragment>
                     ))}
                   </p>
                 </div>
@@ -494,17 +497,19 @@ export const SpanishBibleReader: React.FC = () => {
                     <div className="w-full h-px bg-gradient-to-r from-transparent via-white/10 to-transparent mb-4" />
                     <p className="text-white/80 text-lg leading-relaxed relative z-10">
                       {state.translatedText.split(' ').map((word, index) => (
-                        <span 
-                          key={index}
-                          ref={el => { englishWordRefs.current[index] = el; }}
-                          className={`inline-block transition-colors duration-300 ${
-                            hoveredWordIndex !== null && alignmentMap.get(hoveredWordIndex)?.includes(index)
-                              ? 'text-[#f5a623] font-medium'
-                              : ''
-                          }`}
-                        >
-                          {word}{' '}
-                        </span>
+                        <React.Fragment key={index}>
+                          <span 
+                            ref={el => { englishWordRefs.current[index] = el; }}
+                            className={`inline-block transition-colors duration-300 ${
+                              hoveredWordIndex !== null && alignmentMap.get(hoveredWordIndex)?.includes(index)
+                                ? 'text-[#f5a623] font-medium'
+                                : ''
+                            }`}
+                          >
+                            {word}
+                          </span>
+                          {index < state.translatedText.split(' ').length - 1 && ' '}
+                        </React.Fragment>
                       ))}
                     </p>
                   </>

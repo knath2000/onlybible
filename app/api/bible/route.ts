@@ -40,15 +40,51 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     );
   }
 
-  // Parse passage: "Juan+3:16" -> book="Juan", chapter=3, verse=16
-  const cleanPassage = passage.replace(/\s+/g, '+');
-  const passageParts = cleanPassage.split(':');
-  const bookChapter = passageParts[0];
-  const verse = passageParts.length > 1 ? parseInt(passageParts[1]) : 1;
+  // Parse passage from right to left to handle multi-word book names
+  // Examples: "2 Reyes 1:1", "Juan 3:16", "1 Corintios 2:5"
+  let verse = 1;
+  let chapter = 1;
+  let spanishBookName = '';
   
-  const bookChapterParts = bookChapter.split('+');
-  const spanishBookName = bookChapterParts[0];
-  const chapter = bookChapterParts.length > 1 ? parseInt(bookChapterParts[1]) : 1;
+  // Find the verse (after the last colon)
+  const lastColonIndex = passage.lastIndexOf(':');
+  if (lastColonIndex !== -1) {
+    const verseStr = passage.substring(lastColonIndex + 1).trim();
+    verse = parseInt(verseStr) || 1;
+    
+    // Everything before the colon is book + chapter
+    const bookChapterPart = passage.substring(0, lastColonIndex).trim();
+    
+    // Find the last number in the string (this is the chapter)
+    // Match the last sequence of digits that appears at the end (possibly with trailing spaces)
+    const chapterMatch = bookChapterPart.match(/(\d+)\s*$/);
+    if (chapterMatch) {
+      chapter = parseInt(chapterMatch[1]) || 1;
+      // Everything before the chapter number is the book name
+      const chapterIndex = bookChapterPart.lastIndexOf(chapterMatch[1]);
+      spanishBookName = bookChapterPart.substring(0, chapterIndex).trim();
+    } else {
+      // No chapter number found, treat entire string as book name
+      spanishBookName = bookChapterPart;
+    }
+  } else {
+    // No colon found, treat entire passage as book name
+    spanishBookName = passage.trim();
+  }
+  
+  // Clean up book name: remove any trailing + or spaces
+  spanishBookName = spanishBookName.replace(/[\+\s]+$/, '').trim();
+  
+  // If book name is empty, return error
+  if (!spanishBookName) {
+    return NextResponse.json(
+      {
+        error: 'Invalid passage format. Could not extract book name.',
+        example: '2 Reyes 1:1 or Juan 3:16'
+      },
+      { status: 400 }
+    );
+  }
   
   // Normalize the input book name (removes accents, lowercase)
   const normalizedInput = normalizeText(spanishBookName);

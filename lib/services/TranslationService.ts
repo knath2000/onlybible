@@ -236,14 +236,12 @@ export class TranslationService {
     'carne': 'flesh',
     'sangre': 'blood',
     'luz': 'light',
-    'tinieblas': 'darkness',
     'oscuridad': 'darkness',
     'día': 'day',
     'noche': 'night',
     'cielo': ['heaven', 'sky'],
     'cielos': ['heavens', 'skies'],
     'tierra': ['earth', 'land'],
-    'mar': 'sea',
     'agua': 'water',
     'fuego': 'fire',
     'viento': 'wind',
@@ -288,7 +286,6 @@ export class TranslationService {
     'año': 'year',
     'mes': 'month',
     'semana': 'week',
-    'mañana': 'morning',
     'tarde': ['afternoon', 'late'],
     'hermano': 'brother',
     'hermana': 'sister',
@@ -299,8 +296,79 @@ export class TranslationService {
     'israel': 'Israel',
     'jerusalén': 'Jerusalem',
     
+    // Genesis Specific Vocabulary
+    'desordenada': ['without form', 'disordered', 'messy'],
+    'vacía': ['void', 'empty'],
+    'tinieblas': ['darkness', 'gloom'],
+    'abismo': ['deep', 'abyss'],
+    'faz': 'face',
+    'aguas': 'waters',
+    'firmamento': 'firmament',
+    'expansión': 'firmament',
+    'hierba': ['grass', 'herb'],
+    'árbol': 'tree',
+    'fruto': 'fruit',
+    'semilla': ['seed', 'semen'],
+    'simiente': 'seed',
+    'lumbrera': 'light',
+    'monstruos': ['whales', 'monsters'],
+    'bestias': 'beasts',
+    'serpiente': 'serpent',
+    'jardín': 'garden',
+    'huerto': 'garden',
+    'polvo': 'dust',
+    'costilla': 'rib',
+    'desnudo': 'naked',
+    'astuto': 'subtle',
+    
+    // Actions (Genesis)
+    'separar': ['divide', 'separate'],
+    'separó': ['divided', 'separated'],
+    'juntar': ['gather', 'join'],
+    'juntarse': 'gathered',
+    'producir': ['bring forth', 'produce'],
+    'produzca': 'bring forth',
+    'produjo': 'brought forth',
+    'bendecir': 'bless',
+    'bendijo': 'blessed',
+    'santificar': 'sanctify',
+    'santificó': 'sanctified',
+    'ordenar': 'command',
+    'acabar': ['finish', 'end'],
+    'acabó': ['finished', 'ended'],
+    'reposar': 'rest',
+    'reposó': 'rested',
+    'labrar': 'till',
+    'guardar': 'keep',
+    'comer': 'eat',
+    'comió': 'ate',
+    'morir': 'die',
+    
+    // Nature
+    'vegetación': 'vegetation',
+    'seco': 'dry',
+    'mar': 'sea',
+    'mares': 'seas',
+    'sol': 'sun',
+    'luna': 'moon',
+    'estrella': 'star',
+    'estrellas': 'stars',
+    'ave': 'fowl',
+    'aves': 'fowls',
+    'pez': 'fish',
+    'peces': 'fish',
+    'ganado': 'cattle',
+    
+    // Numbers / Time
+    'primero': 'first',
+    'segundo': 'second',
+    'tercero': 'third',
+    'cuarto': 'fourth',
+    'quinto': 'fifth',
+    'sexto': 'sixth',
+    'séptimo': 'seventh',
+    
     // Adjectives / Adverbs
-    'bueno': 'good',
     'malo': 'bad',
     'grande': 'great',
     'pequeño': 'small',
@@ -505,6 +573,29 @@ export class TranslationService {
        translationCandidates = this.wordDictionary[word.toLowerCase()];
     }
 
+    // If still no translation found, try external API fallback
+    if (!translationCandidates) {
+      try {
+        // Quick check to avoid API calls for very short words or numbers
+        if (word.length > 2 && isNaN(Number(word))) {
+           // We'll only await if we really need it, but since this method is async, it's fine.
+           // Ideally, we would batch these or have a separate explicit method, 
+           // but for now we do a fetch here.
+           
+           const apiTranslation = await this.fetchWordTranslation(word);
+           if (apiTranslation) {
+             // Cache it for future use
+             this.wordDictionary[cleanWord] = apiTranslation;
+             this.normalizedDictionary[cleanWord] = apiTranslation;
+             translationCandidates = [apiTranslation];
+           }
+        }
+      } catch (err) {
+        // Ignore API errors and fall through to return original
+        console.warn(`API fallback failed for ${word}`, err);
+      }
+    }
+
     // If still no translation found, return original (capitalized if needed)
     if (!translationCandidates) {
       return word;
@@ -548,6 +639,30 @@ export class TranslationService {
     }
     
     return result;
+  }
+
+  /**
+   * Fetch word translation from our internal API proxy (MyMemory)
+   */
+  private async fetchWordTranslation(word: string): Promise<string | null> {
+    const cacheKey = `api-word-${word}`;
+    const cached = this.cache.getCachedData(cacheKey);
+    if (cached) return cached;
+    
+    try {
+      const res = await fetch(`/api/translate/word?word=${encodeURIComponent(word)}`);
+      if (!res.ok) return null;
+      
+      const data = await res.json();
+      if (data.translation) {
+        // Cache for 24 hours
+        this.cache.setCachedData(cacheKey, data.translation, 86400);
+        return data.translation;
+      }
+      return null;
+    } catch (e) {
+      return null;
+    }
   }
 
   /**

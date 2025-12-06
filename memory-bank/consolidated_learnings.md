@@ -473,3 +473,203 @@ const dict = {
 }
 ```
 **Takeaway**: Always consolidate definitions for polysemous words into a single entry, preferably an array.
+
+## Word Alignment & Visual Mapping (Latest Session)
+
+### Alignment Algorithm Pattern
+**Problem**: Need to visually connect Spanish words to their English equivalents in the verse.
+
+**Solution**: Multi-step alignment process:
+1. Tokenize both Spanish and English texts
+2. For each Spanish word, look up candidates in dictionary
+3. Find matches in English word array
+4. Use positional heuristic: select English word closest to relative position
+5. Return mapping: `Map<SpanishIndex, EnglishIndex[]>`
+
+**Implementation**:
+```typescript
+computeAlignment(spanishText: string, englishText: string): Map<number, number[]> {
+  // Tokenize
+  const spanishWords = spanishText.split(' ');
+  const englishWords = englishText.split(' ');
+  
+  // Build English word index map
+  const englishWordIndices: Record<string, number[]> = {};
+  englishWords.forEach((word, index) => {
+    const cleanWord = normalizeWord(word);
+    if (!englishWordIndices[cleanWord]) {
+      englishWordIndices[cleanWord] = [];
+    }
+    englishWordIndices[cleanWord].push(index);
+  });
+  
+  // Match Spanish to English using dictionary + position
+  spanishWords.forEach((spanishWord, sIndex) => {
+    const candidates = dictionary[normalizeWord(spanishWord)];
+    // Find best match using positional heuristic
+    // ...
+  });
+}
+```
+
+**Key Insights**:
+- **Positional Heuristic**: `expectedIndex = (sIndex / spanishLength) * englishLength` helps disambiguate multiple matches
+- **Dictionary First**: Only align words that exist in dictionary (high accuracy, lower coverage)
+- **Multiple Targets**: One Spanish word can map to multiple English words (array return type)
+
+### SVG Overlay Pattern
+**Problem**: Need to draw dynamic lines between words that may be at different positions.
+
+**Solution**: SVG overlay with absolute positioning and Bezier curves.
+
+**Implementation**:
+```typescript
+// AlignmentOverlay.tsx
+<svg className="absolute inset-0 pointer-events-none">
+  <defs>
+    <linearGradient id="gold-gradient">...</linearGradient>
+  </defs>
+  {targetRects.map((targetRect, index) => {
+    const start = getRelativePoint(sourceRect, 'bottom');
+    const end = getRelativePoint(targetRect, 'top');
+    const pathData = `M ${start.x} ${start.y} C ${cp1.x} ${cp1.y}, ${cp2.x} ${cp2.y}, ${end.x} ${end.y}`;
+    return <path d={pathData} stroke="url(#gold-gradient)" />;
+  })}
+</svg>
+```
+
+**Key Insights**:
+- **Absolute Positioning**: SVG positioned absolutely over verse card
+- **Relative Coordinates**: Calculate positions relative to container for accurate placement
+- **Bezier Curves**: Cubic Bezier paths create smooth, elegant connections
+- **Animation**: CSS animations (draw-line) provide smooth appearance
+- **Pointer Events**: `pointer-events-none` prevents SVG from blocking interactions
+
+### DOM Refs Pattern for Word Positioning
+**Problem**: Need to get exact screen coordinates of word elements for line drawing.
+
+**Solution**: Use React refs to capture element references and calculate bounding boxes.
+
+**Implementation**:
+```typescript
+const spanishWordRefs = useRef<(HTMLElement | null)[]>([]);
+const englishWordRefs = useRef<(HTMLElement | null)[]>([]);
+
+// In render
+{spanishWords.map((word, index) => (
+  <span ref={el => { spanishWordRefs.current[index] = el; }}>
+    {word}
+  </span>
+))}
+
+// On hover
+const spanishEl = spanishWordRefs.current[hoveredWordIndex];
+const spanishRect = spanishEl.getBoundingClientRect();
+const containerRect = containerRef.current.getBoundingClientRect();
+```
+
+**Key Insights**:
+- **Ref Arrays**: Use arrays to store refs for multiple elements
+- **BoundingClientRect**: Provides precise position and size information
+- **Relative Calculation**: Subtract container position for accurate overlay coordinates
+- **Reset on Change**: Clear and reinitialize refs when text changes
+
+## Book Name Parsing (Latest Session)
+
+### Right-to-Left Parsing Pattern
+**Problem**: Multi-word book names like "2 Reyes" break when parsing "2 Reyes 1:1" because spaces are converted to `+` and then split incorrectly.
+
+**Solution**: Parse from right to left (verse → chapter → book).
+
+**Implementation**:
+```typescript
+// Find verse (after last colon)
+const lastColonIndex = passage.lastIndexOf(':');
+const verse = parseInt(passage.substring(lastColonIndex + 1)) || 1;
+
+// Find chapter (last number before colon)
+const bookChapterPart = passage.substring(0, lastColonIndex).trim();
+const chapterMatch = bookChapterPart.match(/(\d+)\s*$/);
+const chapter = parseInt(chapterMatch[1]) || 1;
+
+// Everything before chapter is book name
+const chapterIndex = bookChapterPart.lastIndexOf(chapterMatch[1]);
+const spanishBookName = bookChapterPart.substring(0, chapterIndex).trim();
+```
+
+**Key Insights**:
+- **Right-to-Left**: Parsing from end ensures correct extraction of verse and chapter
+- **Regex for Chapter**: `/(\d+)\s*$/` matches last number at end of string
+- **Preserve Spaces**: Don't convert spaces to `+` until after parsing book name
+- **Edge Cases**: Handle missing chapter/verse gracefully with defaults
+
+## Dictionary Normalization (Latest Session)
+
+### Pre-Normalization Pattern
+**Problem**: Dictionary keys like `'creó'` contain accents, but `normalizeWord()` strips accents before lookup, causing misses.
+
+**Solution**: Normalize all dictionary keys at construction time.
+
+**Implementation**:
+```typescript
+private normalizedDictionary: Record<string, string | string[]> = {};
+
+constructor(cache: CacheService) {
+  this.cache = cache;
+  this.initializeNormalizedDictionary();
+}
+
+private initializeNormalizedDictionary() {
+  Object.keys(this.wordDictionary).forEach(key => {
+    const normalizedKey = this.normalizeWord(key);
+    this.normalizedDictionary[normalizedKey] = this.wordDictionary[key];
+    
+    // Also keep original key if different
+    if (normalizedKey !== key.toLowerCase()) {
+      this.normalizedDictionary[key.toLowerCase()] = this.wordDictionary[key];
+    }
+  });
+}
+```
+
+**Key Insights**:
+- **Construction-Time**: Normalize once at initialization, not on every lookup
+- **Dual Storage**: Keep both normalized and original keys for maximum compatibility
+- **Performance**: Pre-computation avoids repeated normalization overhead
+- **Accent Handling**: Ensures words like "creó" are found even when normalized to "creo"
+
+## API Fallback Strategy (Latest Session)
+
+### External Translation API Integration
+**Problem**: Local dictionary can't cover all words; need fallback for unknown terms.
+
+**Solution**: Integrate MyMemory API as fallback when dictionary lookup fails.
+
+**Implementation**:
+```typescript
+// New API route: /api/translate/word
+export async function GET(request: Request) {
+  const word = searchParams.get('word');
+  const response = await fetch(
+    `https://api.mymemory.translated.net/get?q=${word}&langpair=es|en`
+  );
+  return NextResponse.json({ translation: data.responseData.translatedText });
+}
+
+// In TranslationService
+if (!translationCandidates) {
+  const apiTranslation = await this.fetchWordTranslation(word);
+  if (apiTranslation) {
+    // Cache and add to dictionary
+    this.wordDictionary[cleanWord] = apiTranslation;
+    translationCandidates = [apiTranslation];
+  }
+}
+```
+
+**Key Insights**:
+- **Free Tier**: MyMemory offers 5000 words/day without API key
+- **Caching**: Cache API responses for 24 hours to minimize requests
+- **Dictionary Update**: Add successful API translations to local dictionary
+- **Graceful Degradation**: Return original word if API also fails
+- **Rate Limiting**: Free tier sufficient for typical usage patterns

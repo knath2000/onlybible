@@ -55,6 +55,19 @@ npm install
 npm run dev
 ```
 
+## 🔊 Text-to-Speech (Audio)
+
+To enable tap-to-listen audio for verses via a cloud TTS provider (Azure Speech):
+
+```
+TTS_PROVIDER=azure
+TTS_API_KEY=your-azure-speech-key
+TTS_REGION=your-azure-region
+TTS_VOICE=es-ES-AlvaroNeural
+```
+
+If these variables are not set, audio requests will return an error. The app remains fully functional for reading and translation without TTS.
+
 ## 🎨 Design Features
 
 - **Glassmorphic UI**: Modern frosted glass effect with blur

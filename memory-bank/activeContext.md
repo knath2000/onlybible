@@ -1,12 +1,12 @@
 # Active Context: Current Development Status
 
 ## Current Work Focus
-- **UI Redesign Completed**: Replaced standard interface with elegant "Luminous Verses" inspired design (Quran reader style)
-- **Translation Accuracy Improved**: Implemented Context-Aware Fuzzy Matching for word translations
-- **Deployment Fixed**: Resolved duplicate key errors in TypeScript build
-- **User Experience Enhanced**: Added floating controls, gold accents, and smoother interactions
+- **Word Alignment Feature**: Implemented visual mapping lines between Spanish and English words with Bezier curves
+- **Translation System Enhanced**: Expanded dictionary with 50+ biblical terms and MyMemory API fallback
+- **Book Parsing Fixed**: Resolved multi-word book name parsing (e.g., "2 Reyes") that was causing wrong verses
+- **UI Polish**: Fixed word spacing issues and improved visual alignment overlay
 
-## Recent Changes (December 4, 2025 - Latest Session)
+## Recent Changes (Latest Session - Word Alignment & Translation Improvements)
 
 ### UI Redesign (Luminous Verses Style)
 - ✅ **New Verse Reader Layout**: Elegant, centered card design with large typography (Playfair Display)
@@ -31,8 +31,28 @@
 - ✅ **Added `isTranslating` State**: Separate loading indicator for translation operations
 - ✅ **Smart Toggle Behavior**: First click fetches, subsequent clicks show/hide cached translation
 
+### Word Alignment & Visual Mapping (Latest Session)
+- ✅ **Interactive Word Alignment**: Implemented `computeAlignment()` method that maps Spanish words to English equivalents
+- ✅ **Visual Connector Overlay**: Created `AlignmentOverlay` component with SVG Bezier curves connecting aligned words
+- ✅ **Hover-Based Display**: Alignment lines appear on hover with gold gradient styling matching app aesthetic
+- ✅ **Position Calculation**: Uses DOM refs to calculate precise word positions for accurate line drawing
+- ✅ **Context-Aware Matching**: Alignment uses dictionary + positional heuristics to find best matches
+
+### Translation System Enhancements (Latest Session)
+- ✅ **Dictionary Expansion**: Added 50+ Genesis-specific biblical terms (desordenada, vacía, tinieblas, abismo, etc.)
+- ✅ **MyMemory API Integration**: Created `/api/translate/word` route as fallback when dictionary lookup fails
+- ✅ **API Fallback Logic**: `translateWord()` now queries MyMemory API for unknown words (5000 words/day free tier)
+- ✅ **Caching Strategy**: API translations cached for 24 hours to minimize requests and improve performance
+- ✅ **Accent Handling Fixed**: Normalized dictionary keys at construction time to handle accented words correctly
+
+### Bug Fixes (Latest Session)
+- ✅ **Book Name Parsing**: Fixed parsing logic to handle multi-word books like "2 Reyes 1:1" correctly
+- ✅ **Word Spacing**: Resolved word concatenation issue using React.Fragment with explicit spacing
+- ✅ **Duplicate Keys**: Removed duplicate dictionary entries (tinieblas, mar, bueno) that caused TypeScript build errors
+- ✅ **TypeScript Errors**: Fixed all build errors related to undefined variables and duplicate keys
+
 ## Next Steps
-1. **Word Alignment Feature**: Further refine fuzzy matching to handle complex alignments
+1. **Alignment Refinement**: Improve alignment accuracy for complex verse structures
 2. **Performance Optimization**: Add prefetching for adjacent verses
 3. **Offline Support**: Cache verses for offline reading
 4. **Additional Bible Versions**: Support multiple Spanish/English translations
@@ -52,17 +72,22 @@
 - **Dual API Architecture**: Separate routes for Spanish (RVR60) and English (KJV) content
 - **Graceful Fallback**: Dictionary translation when Bible API unavailable
 
-## Learnings (December 2025 - This Session)
-- **TypeScript Strictness**: Object literals cannot have duplicate keys even if values differ; use arrays or distinct keys
-- **Context-Awareness**: Word-for-word translation quality jumps significantly when constrained by the known full translation
-- **Visual Hierarchy**: Centered, spacious layouts (like Quran readers) improve focus on sacred text
-- **Unicode NFD Normalization**: Essential for matching accented Spanish characters to API keys
-- **Free Bible APIs**: bible-api.com and biblia-api.vercel.app provide quality content without API keys
+## Learnings (Latest Session - Word Alignment & Translation)
+- **Right-to-Left Parsing**: Parsing passage strings from right (verse → chapter → book) handles multi-word book names correctly
+- **SVG Overlay Patterns**: Using absolute positioning with SVG for dynamic line drawing provides smooth visual connections
+- **DOM Refs for Positioning**: Capturing refs to word elements enables precise coordinate calculation for alignment lines
+- **Dictionary Normalization**: Pre-normalizing dictionary keys at construction time handles accents better than runtime normalization
+- **API Fallback Strategy**: External translation APIs (MyMemory) provide coverage for words not in local dictionary
+- **React Fragment Spacing**: Using React.Fragment with explicit space characters prevents word concatenation in inline-block layouts
+- **Bezier Curves for UI**: Cubic Bezier paths create elegant visual connections between aligned elements
+- **TypeScript Build Errors**: Duplicate object keys cause build failures even if values differ; consolidate into arrays
 
 ## Current Status
 - **UI/UX**: ✅ "Luminous Verses" design implemented
 - **Spanish Bible API**: ✅ Working with free biblia-api.vercel.app
 - **English Translation**: ✅ Working with bible-api.com (KJV)
-- **Word-by-Word**: ✅ Context-Aware with expanded dictionary
-- **Deployment**: ✅ Build errors resolved
-- **Caching**: ✅ 24-hour cache for verses and translations
+- **Word-by-Word**: ✅ Context-Aware with expanded dictionary + API fallback
+- **Word Alignment**: ✅ Visual mapping with Bezier curves on hover
+- **Book Parsing**: ✅ Correctly handles multi-word book names
+- **Deployment**: ✅ All build errors resolved
+- **Caching**: ✅ 24-hour cache for verses, translations, and API word translations

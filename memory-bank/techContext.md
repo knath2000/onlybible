@@ -32,6 +32,7 @@
 |-------|---------|--------------|
 | `/api/bible` | Spanish verses (RVR60) | biblia-api.vercel.app |
 | `/api/bible/english` | English verses (KJV) | bible-api.com |
+| `/api/translate/word` | Word translation fallback | api.mymemory.translated.net |
 
 ## Development Setup
 - Node.js 20+
@@ -64,8 +65,9 @@ function normalizeText(text: string): string {
 ### Caching Strategy
 - Spanish verses: 24-hour cache
 - English verses: 24-hour cache
-- Word translations: 1-hour cache
+- Word translations: 1-hour cache (dictionary), 24-hour cache (API)
 - Book/chapter metadata: Long-term cache
+- API word translations: 24-hour cache
 
 ### State Management
 ```typescript

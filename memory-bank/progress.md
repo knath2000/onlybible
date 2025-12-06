@@ -3,6 +3,10 @@
 ## What Works ✅
 - **UI Redesign (Luminous Verses)** - Elegant dark/gold theme with glassmorphic cards
 - **Context-Aware Translation** - Word tooltips match the actual KJV English verse
+- **Word Alignment Visualization** - Interactive Bezier curves connecting Spanish and English words on hover
+- **Expanded Dictionary** - 350+ biblical terms including Genesis-specific vocabulary
+- **API Fallback Translation** - MyMemory API integration for unknown words (5000 words/day free)
+- **Multi-Word Book Parsing** - Correctly handles "2 Reyes", "1 Corintios", etc.
 - **Architecture design completed** - Comprehensive system architecture documented
 - **Spanish Bible API working** - Free biblia-api.vercel.app with RVR60 (no API key needed)
 - **English Translation working** - bible-api.com with KJV for verse translations
@@ -13,10 +17,10 @@
 - **Translation button** - Fetches and displays KJV English verses
 - **Unicode normalization** - Handles accented Spanish book names (Génesis, Éxodo, etc.)
 - **Vercel deployment ready** - Complete deployment configuration and guide
-- **Caching system** - 24-hour cache for verses and translations
+- **Caching system** - 24-hour cache for verses, translations, and API word translations
 
 ## What's Left to Build
-- **Advanced Word Alignment** - Visual mapping lines between Spanish and English words
+- **Alignment Accuracy Improvements** - Refine heuristic matching for better word-to-word connections
 - **Multiple Bible versions** - Support additional Spanish/English translations
 - **Offline support** - Cache verses for offline reading
 - **Performance monitoring** - Set up analytics and error tracking
@@ -34,7 +38,8 @@
 - **Deployment phase**: ✅ Ready for production
 
 ## Known Issues
-- **Word Dictionary Coverage**: Dictionary expanded to ~300 words but covers only common terms; uncommon words fallback to original.
+- **Word Dictionary Coverage**: Dictionary expanded to ~350 words with API fallback; covers most common biblical terms
+- **Alignment Accuracy**: Heuristic matching works well but may miss complex alignments in poetic passages
 - **Single Verse Display**: Currently shows one verse at a time; chapter view would improve UX
 - **No Offline Support**: Requires internet connection for all operations
 
@@ -63,6 +68,12 @@
 22. **Separate Loading States**: Added isTranslating for better UX
 23. **UI Redesign**: Adopted "Luminous Verses" aesthetic (dark purple/gold)
 24. **Context-Aware Translation**: Implemented fuzzy matching against KJV text
+25. **Word Alignment Feature**: Implemented visual mapping with Bezier curves connecting aligned words
+26. **Dictionary Expansion**: Added 50+ Genesis-specific biblical terms
+27. **MyMemory API Integration**: Added fallback translation API for unknown words
+28. **Book Parsing Fix**: Fixed multi-word book name parsing (2 Reyes, 1 Corintios, etc.)
+29. **Word Spacing Fix**: Resolved word concatenation using React.Fragment
+30. **Build Error Fixes**: Removed duplicate dictionary keys causing TypeScript errors
 
 ## Version History
 - **v0.1**: Initial architecture and requirements
@@ -82,6 +93,7 @@
 - **v1.5**: Free API migration (no keys required)
 - **v1.6**: English Bible translation with KJV (bible-api.com)
 - **v1.7**: UI Redesign ("Luminous Verses") & Context-Aware Translation
+- **v1.8**: Word Alignment Visualization & Enhanced Translation System
 
-## Current Project State (December 2025)
-The project features a polished "Luminous Verses" design with a robust reading experience. It fully supports Spanish (RVR60) and English (KJV) integration. The translation system is now context-aware, providing accurate word-for-word translations by cross-referencing the dictionary with the actual English verse text. All build issues have been resolved, and the application is ready for production deployment.
+## Current Project State (Latest)
+The project features a polished "Luminous Verses" design with a robust reading experience. It fully supports Spanish (RVR60) and English (KJV) integration. The translation system is now context-aware with an expanded dictionary (350+ terms) and MyMemory API fallback for unknown words. The new word alignment feature provides visual connections between Spanish and English words using elegant Bezier curves. Multi-word book names are correctly parsed, and all build errors have been resolved. The application is production-ready with comprehensive error handling and caching strategies.

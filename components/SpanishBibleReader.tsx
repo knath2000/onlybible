@@ -54,6 +54,10 @@ export const SpanishBibleReader: React.FC = () => {
   const [error, setError] = useState<BibleError | null>(null);
   const [viewMode, setViewMode] = useState<ViewMode>('home');
   const [verseOfDay, setVerseOfDay] = useState<{ book: string; chapter: number; verse: number } | null>(null);
+  const [isTtsLoading, setIsTtsLoading] = useState(false);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const objectUrlRef = useRef<string | null>(null);
 
   // Generate a "verse of the day" based on the date
   useEffect(() => {
@@ -188,6 +192,54 @@ export const SpanishBibleReader: React.FC = () => {
   };
 
   const overlayProps = getOverlayProps();
+
+  // Cleanup audio object URLs on unmount
+  useEffect(() => {
+    return () => {
+      if (audioRef.current) {
+        audioRef.current.pause();
+      }
+      if (objectUrlRef.current) {
+        URL.revokeObjectURL(objectUrlRef.current);
+      }
+    };
+  }, []);
+
+  const handlePlayAudio = async () => {
+    if (!state.verseText) return;
+    setIsTtsLoading(true);
+    setIsPlaying(false);
+    try {
+      const res = await fetch(`/api/tts?text=${encodeURIComponent(state.verseText)}`);
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || 'No se pudo generar audio');
+      }
+      const blob = await res.blob();
+      if (objectUrlRef.current) {
+        URL.revokeObjectURL(objectUrlRef.current);
+      }
+      const url = URL.createObjectURL(blob);
+      objectUrlRef.current = url;
+
+      if (audioRef.current) {
+        audioRef.current.pause();
+      }
+      const audio = new Audio(url);
+      audioRef.current = audio;
+      audio.onended = () => setIsPlaying(false);
+      await audio.play();
+      setIsPlaying(true);
+    } catch (err) {
+      console.error('TTS playback failed:', err);
+      setError({
+        error: 'No se pudo reproducir el audio',
+        details: err instanceof Error ? err.message : 'Error desconocido'
+      });
+    } finally {
+      setIsTtsLoading(false);
+    }
+  };
 
   // Decorative Diamond Icon
   const DiamondIcon = () => (
@@ -455,10 +507,20 @@ export const SpanishBibleReader: React.FC = () => {
                 {/* Alignment Overlay */}
                 {overlayProps && <AlignmentOverlay {...overlayProps} />}
 
-                {/* Verse Number */}
-                <p className="text-[#f5a623] text-xl font-semibold mb-6">
-                  {state.currentChapter}:{state.currentVerse}
-                </p>
+                {/* Verse Number + Audio */}
+                <div className="flex items-center justify-center gap-3 mb-6">
+                  <p className="text-[#f5a623] text-xl font-semibold">
+                    {state.currentChapter}:{state.currentVerse}
+                  </p>
+                  <button
+                    onClick={handlePlayAudio}
+                    disabled={isTtsLoading || !state.verseText}
+                    className="text-white/70 hover:text-white disabled:opacity-40 transition-colors flex items-center gap-1 text-sm"
+                    aria-label="Escuchar versículo"
+                  >
+                    {isTtsLoading ? '⏳' : '🔊'} {isPlaying ? 'Reproduciendo' : 'Escuchar'}
+                  </button>
+                </div>
 
                 {/* Spanish Verse Text - Large and Centered */}
                 <div className="mb-6 relative z-10">

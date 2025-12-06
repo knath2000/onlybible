@@ -12,11 +12,15 @@
 1. **Dual Bible API**: Separate routes for Spanish (RVR60) and English (KJV)
 2. **Unicode Normalization**: NFD normalization for Spanish accented characters
 3. **Real Bible Translations**: Fetch actual Bible verses instead of machine translation
-4. **Caching Strategy**: Multi-level caching (verse, translation, word)
+4. **Caching Strategy**: Multi-level caching (verse, translation, word, API translations)
 5. **Error Handling**: Comprehensive error boundaries with fallback dictionary
 6. **UI Framework**: Glassmorphic design with Tailwind CSS
 7. **State Management**: React Context + useReducer with separate loading states
 8. **Context-Aware Translation**: Word translations are disambiguated using the full verse context
+9. **Word Alignment**: Visual mapping with SVG Bezier curves connecting aligned words
+10. **API Fallback**: MyMemory API integration for unknown words when dictionary fails
+11. **Right-to-Left Parsing**: Parse passage strings from end to handle multi-word book names
+12. **Pre-Normalized Dictionary**: Normalize dictionary keys at construction time for accent handling
 
 ## Design Patterns
 
@@ -24,6 +28,7 @@
 ```
 BibleService → /api/bible → biblia-api.vercel.app (RVR60)
 TranslationService → /api/bible/english → bible-api.com (KJV)
+TranslationService → /api/translate/word → api.mymemory.translated.net (Fallback)
 ```
 
 ### Normalization Pattern
@@ -145,8 +150,38 @@ GET /api/bible/english?book=Génesis&chapter=1&verse=1
     → Return JSON { text, reference, translation }
 ```
 
+### Word Alignment Pattern
+```
+User hovers word → setHoveredWordIndex
+    → computeAlignment(spanishText, englishText)
+    → Dictionary lookup + Positional heuristic
+    → Get target English word indices
+    → Calculate bounding boxes (getBoundingClientRect)
+    → Render AlignmentOverlay with Bezier curves
+```
+
+### API Fallback Pattern
+```
+translateWord(word)
+    → Check normalizedDictionary
+    → If not found, check wordDictionary
+    → If still not found, fetchWordTranslation(word)
+    → Call /api/translate/word → MyMemory API
+    → Cache result and add to dictionary
+    → Return translation
+```
+
+### Right-to-Left Parsing Pattern
+```
+Parse "2 Reyes 1:1"
+    → Find last ':' → verse = 1
+    → Extract "2 Reyes 1"
+    → Match last number → chapter = 1
+    → Everything before → book = "2 Reyes"
+```
+
 ## Future Architecture Considerations
-- **Word Alignment**: Map Spanish words to English equivalents using verse structure
+- **Alignment Accuracy**: Improve heuristic matching for complex verse structures
 - **Offline-first**: Service Worker + IndexedDB for verse caching
 - **Multiple Versions**: Support ESV, NIV, NVI in addition to KJV/RVR60
 - **Chapter View**: Display full chapters with verse-by-verse translation

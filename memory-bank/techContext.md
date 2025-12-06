@@ -33,6 +33,7 @@
 | `/api/bible` | Spanish verses (RVR60) | biblia-api.vercel.app |
 | `/api/bible/english` | English verses (KJV) | bible-api.com |
 | `/api/translate/word` | Word translation fallback | api.mymemory.translated.net |
+| `/api/tts` | Verse audio playback (MP3) | Azure Speech (configurable) |
 
 ## Development Setup
 - Node.js 20+
@@ -68,6 +69,7 @@ function normalizeText(text: string): string {
 - Word translations: 1-hour cache (dictionary), 24-hour cache (API)
 - Book/chapter metadata: Long-term cache
 - API word translations: 24-hour cache
+- TTS audio: not cached by default (provider-dependent); can add hash-based 24-hour cache if needed
 
 ### State Management
 ```typescript

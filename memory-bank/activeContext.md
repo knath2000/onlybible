@@ -1,9 +1,10 @@
 # Active Context: Current Development Status
 
 ## Current Work Focus
-- **Word Alignment Feature**: Implemented visual mapping lines between Spanish and English words with Bezier curves
+- **Word Alignment Feature**: Visual mapping lines between Spanish and English words with Bezier curves
 - **Translation System Enhanced**: Expanded dictionary with 50+ biblical terms and MyMemory API fallback
-- **Book Parsing Fixed**: Resolved multi-word book name parsing (e.g., "2 Reyes") that was causing wrong verses
+- **Book Parsing Fixed**: Multi-word book parsing (e.g., "2 Reyes") now resolves correctly
+- **Audio Playback**: Added tap-to-listen via cloud TTS proxy with speaker control and playback states
 - **UI Polish**: Fixed word spacing issues and improved visual alignment overlay
 
 ## Recent Changes (Latest Session - Word Alignment & Translation Improvements)
@@ -44,6 +45,12 @@
 - ✅ **API Fallback Logic**: `translateWord()` now queries MyMemory API for unknown words (5000 words/day free tier)
 - ✅ **Caching Strategy**: API translations cached for 24 hours to minimize requests and improve performance
 - ✅ **Accent Handling Fixed**: Normalized dictionary keys at construction time to handle accented words correctly
+
+### Audio (TTS) Enhancements (Latest Session)
+- ✅ **Cloud TTS Proxy**: New `/api/tts` route (Azure Speech) returning MP3
+- ✅ **Speaker UI**: Added tap-to-listen button on verse card with loading/playing states
+- ✅ **Playback Handling**: Uses `Audio` with cleanup of object URLs and end-of-playback state reset
+- ✅ **Configurable Voices**: Voice/region/provider via env; defaults to `es-ES-AlvaroNeural`
 
 ### Bug Fixes (Latest Session)
 - ✅ **Book Name Parsing**: Fixed parsing logic to handle multi-word books like "2 Reyes 1:1" correctly

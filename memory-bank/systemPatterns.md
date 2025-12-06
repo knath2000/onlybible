@@ -21,6 +21,7 @@
 10. **API Fallback**: MyMemory API integration for unknown words when dictionary fails
 11. **Right-to-Left Parsing**: Parse passage strings from end to handle multi-word book names
 12. **Pre-Normalized Dictionary**: Normalize dictionary keys at construction time for accent handling
+13. **Cloud TTS Proxy**: `/api/tts` Azure Speech route returning MP3 for verse audio playback
 
 ## Design Patterns
 

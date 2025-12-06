@@ -495,117 +495,135 @@ export const SpanishBibleReader: React.FC = () => {
 
         {/* Verse Cards */}
         <div className="space-y-4">
-          {/* Current Verse Card */}
-          <GlassCard className="overflow-hidden">
-            {state.isLoading ? (
-              <div className="flex flex-col items-center justify-center py-16 gap-4">
-                <LoadingSpinner size="lg" />
-                <span className="text-white/60">Cargando versículo...</span>
-              </div>
-            ) : (
-              <div className="text-center relative" ref={containerRef}>
-                {/* Alignment Overlay */}
-                {overlayProps && <AlignmentOverlay {...overlayProps} />}
-
-                {/* Verse Number + Audio */}
-                <div className="flex items-center justify-center gap-3 mb-6">
-                  <p className="text-[#f5a623] text-xl font-semibold">
-                    {state.currentChapter}:{state.currentVerse}
-                  </p>
-                  <button
-                    onClick={handlePlayAudio}
-                    disabled={isTtsLoading || !state.verseText}
-                    className="text-white/70 hover:text-white disabled:opacity-40 transition-colors flex items-center gap-1 text-sm"
-                    aria-label="Escuchar versículo"
+          {(state.verseList.length ? state.verseList : [{ verse: state.currentVerse, text: state.verseText, translation: state.translatedText }]).map((item) => {
+            const isCurrent = item.verse === state.currentVerse;
+            return (
+              <GlassCard key={`${state.currentChapter}-${item.verse}`} className="overflow-hidden">
+                {state.isLoading && isCurrent ? (
+                  <div className="flex flex-col items-center justify-center py-16 gap-4">
+                    <LoadingSpinner size="lg" />
+                    <span className="text-white/60">Cargando versículo...</span>
+                  </div>
+                ) : (
+                  <div
+                    className="text-center relative"
+                    ref={isCurrent ? containerRef : undefined}
+                    onClick={() => {
+                      if (!isCurrent) setVerse(item.verse);
+                    }}
                   >
-                    {isTtsLoading ? '⏳' : '🔊'} {isPlaying ? 'Reproduciendo' : 'Escuchar'}
-                  </button>
-                </div>
+                    {/* Alignment Overlay for current verse only */}
+                    {isCurrent && overlayProps && <AlignmentOverlay {...overlayProps} />}
 
-                {/* Spanish Verse Text - Large and Centered */}
-                <div className="mb-6 relative z-10">
-                  <p className="text-white text-2xl sm:text-3xl leading-relaxed font-[family-name:var(--font-playfair)]">
-                    {state.verseText.split(' ').map((word, index) => (
-                      <React.Fragment key={index}>
-                        <span className="inline-block">
-                          <WordTranslationTooltip word={word}>
-                            <span 
-                              ref={el => { spanishWordRefs.current[index] = el; }}
-                              onMouseEnter={() => setHoveredWordIndex(index)}
-                              onMouseLeave={() => setHoveredWordIndex(null)}
-                              className="hover:text-[#f5a623] transition-colors cursor-pointer"
-                            >
-                              {word}
-                            </span>
-                          </WordTranslationTooltip>
-                        </span>
-                        {index < state.verseText.split(' ').length - 1 && ' '}
-                      </React.Fragment>
-                    ))}
-                  </p>
-                </div>
+                    {/* Verse Number + Audio */}
+                    <div className="flex items-center justify-center gap-3 mb-6">
+                      <p className="text-[#f5a623] text-xl font-semibold">
+                        {state.currentChapter}:{item.verse}
+                      </p>
+                      {isCurrent && (
+                        <button
+                          onClick={handlePlayAudio}
+                          disabled={isTtsLoading || !item.text}
+                          className="text-white/70 hover:text-white disabled:opacity-40 transition-colors flex items-center gap-1 text-sm"
+                          aria-label="Escuchar versículo"
+                        >
+                          {isTtsLoading ? '⏳' : '🔊'} {isPlaying ? 'Reproduciendo' : 'Escuchar'}
+                        </button>
+                      )}
+                    </div>
 
-                {/* Divider */}
-                <div className="w-full h-px bg-gradient-to-r from-transparent via-white/20 to-transparent mb-6" />
+                    {/* Spanish Verse Text */}
+                    <div className="mb-6 relative z-10">
+                      <p className="text-white text-2xl sm:text-3xl leading-relaxed font-[family-name:var(--font-playfair)]">
+                        {isCurrent
+                          ? state.verseText.split(' ').map((word, index) => (
+                              <React.Fragment key={index}>
+                                <span className="inline-block">
+                                  <WordTranslationTooltip word={word}>
+                                    <span
+                                      ref={el => { spanishWordRefs.current[index] = el; }}
+                                      onMouseEnter={() => setHoveredWordIndex(index)}
+                                      onMouseLeave={() => setHoveredWordIndex(null)}
+                                      className="hover:text-[#f5a623] transition-colors cursor-pointer"
+                                    >
+                                      {word}
+                                    </span>
+                                  </WordTranslationTooltip>
+                                </span>
+                                {index < state.verseText.split(' ').length - 1 && ' '}
+                              </React.Fragment>
+                            ))
+                          : item.text}
+                      </p>
+                    </div>
 
-                {/* Transliteration/Reference in Gold Italic */}
-                <p className="text-[#f5a623] italic text-lg mb-4 font-[family-name:var(--font-playfair)]">
-                  {state.currentBook} {state.currentChapter}:{state.currentVerse} — Reina-Valera 1960
-                </p>
+                    {/* Divider */}
+                    <div className="w-full h-px bg-gradient-to-r from-transparent via-white/20 to-transparent mb-6" />
 
-                {/* English Translation */}
-                {state.showTranslation && state.translatedText && !state.isTranslating && (
-                  <>
-                    <div className="w-full h-px bg-gradient-to-r from-transparent via-white/10 to-transparent mb-4" />
-                    <p className="text-white/80 text-lg leading-relaxed relative z-10">
-                      {state.translatedText.split(' ').map((word, index) => (
-                        <React.Fragment key={index}>
-                          <span 
-                            ref={el => { englishWordRefs.current[index] = el; }}
-                            className={`inline-block transition-colors duration-300 ${
-                              hoveredWordIndex !== null && alignmentMap.get(hoveredWordIndex)?.includes(index)
-                                ? 'text-[#f5a623] font-medium'
-                                : ''
-                            }`}
-                          >
-                            {word}
-                          </span>
-                          {index < state.translatedText.split(' ').length - 1 && ' '}
-                        </React.Fragment>
-                      ))}
+                    {/* Reference */}
+                    <p className="text-[#f5a623] italic text-lg mb-4 font-[family-name:var(--font-playfair)]">
+                      {state.currentBook} {state.currentChapter}:{item.verse} — Reina-Valera 1960
                     </p>
-                  </>
-                )}
 
-                {/* Translation Loading */}
-                {state.isTranslating && (
-                  <div className="flex items-center justify-center gap-3 py-4">
-                    <LoadingSpinner size="sm" />
-                    <span className="text-white/60">Cargando traducción...</span>
+                    {/* English Translation */}
+                    {state.showTranslation && !state.isTranslating && (isCurrent ? state.translatedText : item.translation) && (
+                      <>
+                        <div className="w-full h-px bg-gradient-to-r from-transparent via-white/10 to-transparent mb-4" />
+                        <p className="text-white/80 text-lg leading-relaxed relative z-10">
+                          {(isCurrent ? state.translatedText : item.translation || '').split(' ').map((word, index) => (
+                            <React.Fragment key={index}>
+                              {isCurrent ? (
+                                <span 
+                                  ref={el => { englishWordRefs.current[index] = el; }}
+                                  className={`inline-block transition-colors duration-300 ${
+                                    hoveredWordIndex !== null && alignmentMap.get(hoveredWordIndex)?.includes(index)
+                                      ? 'text-[#f5a623] font-medium'
+                                      : ''
+                                  }`}
+                                >
+                                  {word}
+                                </span>
+                              ) : (
+                                <span className="inline-block">{word}</span>
+                              )}
+                              {index < ((isCurrent ? state.translatedText : item.translation || '').split(' ').length - 1) && ' '}
+                            </React.Fragment>
+                          ))}
+                        </p>
+                      </>
+                    )}
+
+                    {/* Translation Loading */}
+                    {state.isTranslating && isCurrent && (
+                      <div className="flex items-center justify-center gap-3 py-4">
+                        <LoadingSpinner size="sm" />
+                        <span className="text-white/60">Cargando traducción...</span>
+                      </div>
+                    )}
+
+                    {/* Translate Button (current verse only) */}
+                    {isCurrent && !state.showTranslation && !state.isTranslating && (
+                      <button 
+                        onClick={handleTranslate}
+                        className="mt-4 text-[#f5a623]/70 hover:text-[#f5a623] text-sm transition-colors"
+                      >
+                        🌐 Ver traducción al inglés
+                      </button>
+                    )}
+
+                    {isCurrent && state.showTranslation && !state.isTranslating && (
+                      <button 
+                        onClick={handleTranslate}
+                        className="mt-4 text-white/40 hover:text-white/60 text-sm transition-colors"
+                      >
+                        Ocultar traducción
+                      </button>
+                    )}
                   </div>
                 )}
-
-                {/* Translate Button */}
-                {!state.showTranslation && !state.isTranslating && (
-                  <button 
-                    onClick={handleTranslate}
-                    className="mt-4 text-[#f5a623]/70 hover:text-[#f5a623] text-sm transition-colors"
-                  >
-                    🌐 Ver traducción al inglés
-                  </button>
-                )}
-
-                {state.showTranslation && !state.isTranslating && (
-                  <button 
-                    onClick={handleTranslate}
-                    className="mt-4 text-white/40 hover:text-white/60 text-sm transition-colors"
-                  >
-                    Ocultar traducción
-                  </button>
-                )}
-              </div>
-            )}
-          </GlassCard>
+              </GlassCard>
+            );
+          })}
 
           {/* Verse Navigation */}
           <div className="flex justify-center gap-4 pt-4">

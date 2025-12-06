@@ -6,6 +6,7 @@
 - **Word Alignment Visualization** - Interactive Bezier curves connecting Spanish and English words on hover
 - **Expanded Dictionary** - 350+ biblical terms including Genesis-specific vocabulary
 - **API Fallback Translation** - MyMemory API integration for unknown words (5000 words/day free)
+- **Audio Playback** - Tap-to-listen via `/api/tts` (Azure Speech) with speaker button and playback states
 - **Multi-Word Book Parsing** - Correctly handles "2 Reyes", "1 Corintios", etc.
 - **Architecture design completed** - Comprehensive system architecture documented
 - **Spanish Bible API working** - Free biblia-api.vercel.app with RVR60 (no API key needed)
@@ -42,6 +43,7 @@
 - **Alignment Accuracy**: Heuristic matching works well but may miss complex alignments in poetic passages
 - **Single Verse Display**: Currently shows one verse at a time; chapter view would improve UX
 - **No Offline Support**: Requires internet connection for all operations
+- **TTS Requires Keys**: Audio depends on valid cloud TTS credentials; no offline TTS fallback yet
 
 ## Evolution of Project Decisions
 1. **Initial Requirements**: Basic Spanish Bible reading with translation
@@ -74,6 +76,7 @@
 28. **Book Parsing Fix**: Fixed multi-word book name parsing (2 Reyes, 1 Corintios, etc.)
 29. **Word Spacing Fix**: Resolved word concatenation using React.Fragment
 30. **Build Error Fixes**: Removed duplicate dictionary keys causing TypeScript errors
+31. **TTS Audio Playback**: Added `/api/tts` Azure proxy, speaker button, playback states
 
 ## Version History
 - **v0.1**: Initial architecture and requirements
@@ -94,6 +97,7 @@
 - **v1.6**: English Bible translation with KJV (bible-api.com)
 - **v1.7**: UI Redesign ("Luminous Verses") & Context-Aware Translation
 - **v1.8**: Word Alignment Visualization & Enhanced Translation System
+- **v1.9**: Audio TTS playback via Azure proxy and speaker UI
 
 ## Current Project State (Latest)
 The project features a polished "Luminous Verses" design with a robust reading experience. It fully supports Spanish (RVR60) and English (KJV) integration. The translation system is now context-aware with an expanded dictionary (350+ terms) and MyMemory API fallback for unknown words. The new word alignment feature provides visual connections between Spanish and English words using elegant Bezier curves. Multi-word book names are correctly parsed, and all build errors have been resolved. The application is production-ready with comprehensive error handling and caching strategies.

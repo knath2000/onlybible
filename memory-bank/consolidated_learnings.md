@@ -673,3 +673,43 @@ if (!translationCandidates) {
 - **Dictionary Update**: Add successful API translations to local dictionary
 - **Graceful Degradation**: Return original word if API also fails
 - **Rate Limiting**: Free tier sufficient for typical usage patterns
+
+## Audio TTS (Latest Session)
+
+### Cloud TTS Proxy Pattern
+**Problem**: Need tap-to-listen audio for verses with minimal client complexity.
+
+**Solution**: Add a server-side `/api/tts` route that proxies to Azure Speech, returning MP3 audio.
+
+**Implementation**:
+```typescript
+// /api/tts (Azure Speech)
+const ssml = `<speak version='1.0' xml:lang='${lang}'><voice xml:lang='${lang}' name='${voice}'>${text}</voice></speak>`;
+fetch(`https://${region}.tts.speech.microsoft.com/cognitiveservices/v1`, { headers, body: ssml });
+```
+
+**Key Insights**:
+- **Env Config**: `TTS_PROVIDER`, `TTS_API_KEY`, `TTS_REGION`, `TTS_VOICE` (e.g., es-ES-AlvaroNeural)
+- **Output Format**: MP3 24kHz/48kbps mono for good quality/size
+- **Error Handling**: Return JSON error on provider failure; keep UI responsive
+- **Caching**: Potential to cache by hash(text+voice) for 24h if needed
+
+### Client Playback Pattern
+**Problem**: Play returned audio without heavy player dependencies.
+
+**Solution**: Use `new Audio(objectUrl)` with loading/playing flags and cleanup.
+
+**Implementation**:
+```typescript
+const res = await fetch(`/api/tts?text=...`);
+const blob = await res.blob();
+const url = URL.createObjectURL(blob);
+const audio = new Audio(url);
+audio.onended = () => setIsPlaying(false);
+await audio.play();
+```
+
+**Key Insights**:
+- **Cleanup**: Revoke object URLs on unmount and pause previous audio
+- **States**: Track `isTtsLoading` and `isPlaying` for UI feedback
+- **Fallback**: If no key/config, show error; consider Web Speech fallback later

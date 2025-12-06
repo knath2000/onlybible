@@ -17,6 +17,7 @@ interface BibleState {
   verses: number[];
   showTranslation: boolean;
   translationMode: 'verse' | 'word';
+  verseList: { verse: number; text: string; translation?: string }[];
 }
 
 interface BibleAction {
@@ -50,7 +51,8 @@ const initialState: BibleState = {
   chapters: [],
   verses: [],
   showTranslation: false,
-  translationMode: 'verse'
+  translationMode: 'verse',
+  verseList: []
 };
 
 const BibleContext = createContext<BibleContextType | undefined>(undefined);
@@ -86,6 +88,16 @@ const bibleReducer = (state: BibleState, action: BibleAction): BibleState => {
       return { ...state, translationMode: action.payload };
     case 'CLEAR_ERROR':
       return { ...state, error: null };
+    case 'SET_VERSE_LIST':
+      return { ...state, verseList: action.payload };
+    case 'SET_VERSE_TRANSLATION': {
+      const { verse, translation } = action.payload;
+      const updatedList = state.verseList.map((item) =>
+        item.verse === verse ? { ...item, translation } : item
+      );
+      const translatedText = verse === state.currentVerse ? translation : state.translatedText;
+      return { ...state, verseList: updatedList, translatedText };
+    }
     default:
       return state;
   }
@@ -102,16 +114,40 @@ export const BibleProvider = ({ children }: { children: ReactNode }) => {
       const verseData = await bibleService.fetchVerse(book, chapter, verse);
       dispatch({ type: 'SET_VERSE_TEXT', payload: verseData.text });
 
-      // Silently fetch English translation to enable accurate word-by-word hover
-      // and instant toggle when user clicks Translate
-      translationService.fetchEnglishVerse(book, chapter, verse)
-        .then(englishData => {
-          dispatch({ type: 'SET_TRANSLATED_TEXT', payload: englishData.text });
-        })
-        .catch(err => {
-          console.warn('Background translation fetch failed:', err);
-          // Non-critical error, just means hover won't be context-aware until retry
-        });
+      // Build a small window of verses around the current one to stack vertically
+      const totalVerses = await bibleService.getVersesInChapter(book, chapter);
+      const windowSize = 5;
+      const offset = Math.floor(windowSize / 2);
+      const start = Math.max(1, verse - offset);
+      const end = Math.min(totalVerses, verse + offset);
+      const verseNumbers = Array.from({ length: end - start + 1 }, (_, i) => start + i);
+
+      const verseResults = await Promise.all(
+        verseNumbers.map((num) => bibleService.fetchVerse(book, chapter, num))
+      );
+
+      dispatch({
+        type: 'SET_VERSE_LIST',
+        payload: verseResults.map((v) => ({ verse: v.verse, text: v.text }))
+      });
+
+      // Silently fetch English translations for the window to enable immediate toggle/hover
+      Promise.all(
+        verseNumbers.map((num) =>
+          translationService.fetchEnglishVerse(book, chapter, num)
+            .then((englishData) => {
+              dispatch({
+                type: 'SET_VERSE_TRANSLATION',
+                payload: { verse: num, translation: englishData.text }
+              });
+            })
+            .catch((err) => {
+              console.warn('Background translation fetch failed for verse', num, err);
+            })
+        )
+      ).catch(() => {
+        // Aggregate errors are ignored; individual failures are logged above
+      });
     } catch (error) {
       dispatch({ type: 'SET_ERROR', payload: error instanceof Error ? error.message : 'Unknown error' });
     }
@@ -124,26 +160,36 @@ export const BibleProvider = ({ children }: { children: ReactNode }) => {
       return;
     }
 
-    // If we already have a translation cached, just show it
-    if (state.translatedText) {
-      dispatch({ type: 'TOGGLE_TRANSLATION' });
-      return;
-    }
+    // If translations are already available for the visible window, just show them
+    const missing = state.verseList.filter((v) => !v.translation);
 
     try {
       dispatch({ type: 'SET_TRANSLATING', payload: true });
       dispatch({ type: 'CLEAR_ERROR' });
 
-      // Use the new translateVerse method that fetches English Bible verses
-      const result = await translationService.translateVerse(
-        state.currentBook,
-        state.currentChapter,
-        state.currentVerse,
-        state.verseText
-      );
-      
-      dispatch({ type: 'SET_TRANSLATED_TEXT', payload: result.translatedText });
-      dispatch({ type: 'TOGGLE_TRANSLATION' }); // Show the translation
+      if (missing.length > 0) {
+        await Promise.all(
+          missing.map((v) =>
+            translationService.fetchEnglishVerse(state.currentBook, state.currentChapter, v.verse)
+              .then((res) => {
+                dispatch({
+                  type: 'SET_VERSE_TRANSLATION',
+                  payload: { verse: v.verse, translation: res.text }
+                });
+              })
+          )
+        );
+      }
+
+      // Ensure current verse translatedText is populated for alignment/hover
+      const currentTranslation =
+        state.verseList.find((v) => v.verse === state.currentVerse)?.translation ||
+        state.translatedText;
+      if (currentTranslation) {
+        dispatch({ type: 'SET_TRANSLATED_TEXT', payload: currentTranslation });
+      }
+
+      dispatch({ type: 'TOGGLE_TRANSLATION' }); // Show the translations
     } catch (error) {
       console.error('Translation error:', error);
       dispatch({ type: 'SET_TRANSLATING', payload: false });

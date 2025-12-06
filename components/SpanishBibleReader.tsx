@@ -205,12 +205,24 @@ export const SpanishBibleReader: React.FC = () => {
     };
   }, []);
 
-  const handlePlayAudio = async () => {
-    if (!state.verseText) return;
+  const handlePlayAudio = async (textOverride?: string) => {
+    const audioText = textOverride || state.verseText;
+    if (!audioText) return;
+
+    // Stop any currently playing audio before starting a new one
+    if (audioRef.current) {
+      try {
+        audioRef.current.pause();
+        audioRef.current.currentTime = 0;
+      } catch {
+        // ignore pause errors
+      }
+    }
+
     setIsTtsLoading(true);
     setIsPlaying(false);
     try {
-      const res = await fetch(`/api/tts?text=${encodeURIComponent(state.verseText)}`);
+      const res = await fetch(`/api/tts?text=${encodeURIComponent(audioText)}`);
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
         throw new Error(data.error || 'No se pudo generar audio');
@@ -520,16 +532,17 @@ export const SpanishBibleReader: React.FC = () => {
                       <p className="text-[#f5a623] text-xl font-semibold">
                         {state.currentChapter}:{item.verse}
                       </p>
-                      {isCurrent && (
-                        <button
-                          onClick={handlePlayAudio}
-                          disabled={isTtsLoading || !item.text}
-                          className="text-white/70 hover:text-white disabled:opacity-40 transition-colors flex items-center gap-1 text-sm"
-                          aria-label="Escuchar versículo"
-                        >
-                          {isTtsLoading ? '⏳' : '🔊'} {isPlaying ? 'Reproduciendo' : 'Escuchar'}
-                        </button>
-                      )}
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handlePlayAudio(item.text);
+                        }}
+                        disabled={isTtsLoading || !item.text}
+                        className="text-white/70 hover:text-white disabled:opacity-40 transition-colors flex items-center gap-1 text-sm"
+                        aria-label="Escuchar versículo"
+                      >
+                        {isTtsLoading ? '⏳' : '🔊'} {isPlaying ? 'Reproduciendo' : 'Escuchar'}
+                      </button>
                     </div>
 
                     {/* Spanish Verse Text */}

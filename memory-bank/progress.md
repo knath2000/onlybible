@@ -4,6 +4,8 @@
 - **UI Redesign (Luminous Verses)** - Elegant dark/gold theme with glassmorphic cards
 - **Context-Aware Translation** - Word tooltips match the actual KJV English verse
 - **Word Alignment Visualization** - Interactive Bezier curves connecting Spanish and English words on hover
+- **Stacked Verse Cards** - Vertical list of nearby verses with Spanish+English shown together
+- **Per-Verse Audio** - Each verse has its own play button with single-active playback control
 - **Expanded Dictionary** - 350+ biblical terms including Genesis-specific vocabulary
 - **API Fallback Translation** - MyMemory API integration for unknown words (5000 words/day free)
 - **Audio Playback** - Tap-to-listen via `/api/tts` (Azure Speech) with speaker button and playback states
@@ -41,7 +43,7 @@
 ## Known Issues
 - **Word Dictionary Coverage**: Dictionary expanded to ~350 words with API fallback; covers most common biblical terms
 - **Alignment Accuracy**: Heuristic matching works well but may miss complex alignments in poetic passages
-- **Single Verse Display**: Currently shows one verse at a time; chapter view would improve UX
+- **Limited Range Display**: Shows a small window of verses, not full chapters yet
 - **No Offline Support**: Requires internet connection for all operations
 - **TTS Requires Keys**: Audio depends on valid cloud TTS credentials; no offline TTS fallback yet
 

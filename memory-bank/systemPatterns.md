@@ -53,6 +53,22 @@ isLoading: boolean;      // Verse operations
 isTranslating: boolean;  // Translation operations
 ```
 
+### Stacked Verse Window Pattern
+```typescript
+// Fetch a small window around the current verse for vertical stacking
+const windowSize = 5;
+const offset = Math.floor(windowSize / 2);
+const start = Math.max(1, verse - offset);
+const end = Math.min(totalVerses, verse + offset);
+const verseNumbers = Array.from({ length: end - start + 1 }, (_, i) => start + i);
+```
+- Prefetch English translations for the window to enable instant toggle/hover
+- Render cards top-to-bottom; clicking a card sets it as the active verse
+
+### Single-Active Audio Pattern
+- Each verse card has its own TTS button using the verse text
+- Before playing new audio, pause/reset any existing `Audio` instance so only one plays at a time
+
 ### Toggle with Cache
 ```typescript
 if (showTranslation) toggle();           // Hide if showing

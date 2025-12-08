@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useBible } from '../lib/context/BibleContext';
-import { translationService } from '../lib/api';
+import { bibleService, translationService } from '../lib/api';
 import { GlassCard, GlassButton } from './ui';
 import { LoadingSpinner } from './LoadingSpinner';
 import { WordTranslationTooltip } from './WordTranslationTooltip';
@@ -56,8 +56,12 @@ export const SpanishBibleReader: React.FC = () => {
   const [verseOfDay, setVerseOfDay] = useState<{ book: string; chapter: number; verse: number } | null>(null);
   const [isTtsLoading, setIsTtsLoading] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [isAutoplayRunning, setIsAutoplayRunning] = useState(false);
+  const [autoplayTarget, setAutoplayTarget] = useState<{ book: string; chapter: number; verse: number } | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const objectUrlRef = useRef<string | null>(null);
+  const autoplayRunningRef = useRef(false);
+  const lastAutoplayPlayedRef = useRef<string | null>(null);
 
   // Generate a "verse of the day" based on the date
   useEffect(() => {
@@ -239,7 +243,12 @@ export const SpanishBibleReader: React.FC = () => {
       }
       const audio = new Audio(url);
       audioRef.current = audio;
-      audio.onended = () => setIsPlaying(false);
+      audio.onended = () => {
+        setIsPlaying(false);
+        if (autoplayRunningRef.current) {
+          advanceAutoplay();
+        }
+      };
       await audio.play();
       setIsPlaying(true);
     } catch (err) {
@@ -252,6 +261,90 @@ export const SpanishBibleReader: React.FC = () => {
       setIsTtsLoading(false);
     }
   };
+
+  // Keep ref in sync to avoid stale closures during autoplay
+  useEffect(() => {
+    autoplayRunningRef.current = isAutoplayRunning;
+  }, [isAutoplayRunning]);
+
+  const stopAutoplay = () => {
+    setIsAutoplayRunning(false);
+    setAutoplayTarget(null);
+  };
+
+  const getNextReference = async (): Promise<{ book: string; chapter: number; verse: number } | null> => {
+    const currentVerseCount = state.verses.length;
+    if (state.currentVerse < currentVerseCount) {
+      return { book: state.currentBook, chapter: state.currentChapter, verse: state.currentVerse + 1 };
+    }
+
+    const totalChapters = state.chapters.length;
+    if (state.currentChapter < totalChapters) {
+      // Move to next chapter, verse 1
+      const nextChapter = state.currentChapter + 1;
+      // Ensure verses list for next chapter; fall back to bibleService if not yet loaded
+      let nextChapterVerseCount = state.verses.length;
+      if (state.currentChapter !== nextChapter) {
+        nextChapterVerseCount = await bibleService.getVersesInChapter(state.currentBook, nextChapter);
+      }
+      if (nextChapterVerseCount > 0) {
+        return { book: state.currentBook, chapter: nextChapter, verse: 1 };
+      }
+    }
+
+    // End of book
+    return null;
+  };
+
+  const advanceAutoplay = async () => {
+    if (!autoplayRunningRef.current) return;
+    const nextRef = await getNextReference();
+    if (!nextRef) {
+      stopAutoplay();
+      return;
+    }
+
+    setAutoplayTarget(nextRef);
+    if (nextRef.chapter !== state.currentChapter) {
+      setChapter(nextRef.chapter);
+    }
+    setVerse(nextRef.verse);
+  };
+
+  const startAutoplay = () => {
+    setIsAutoplayRunning(true);
+    setAutoplayTarget({
+      book: state.currentBook,
+      chapter: state.currentChapter,
+      verse: state.currentVerse
+    });
+    lastAutoplayPlayedRef.current = null;
+    handlePlayAudio(state.verseText);
+  };
+
+  // Auto-play when the target verse is loaded and ready
+  useEffect(() => {
+    if (!isAutoplayRunning || !autoplayTarget) return;
+    if (state.isLoading) return;
+
+    const key = `${state.currentBook}-${state.currentChapter}-${state.currentVerse}`;
+    const targetKey = `${autoplayTarget.book}-${autoplayTarget.chapter}-${autoplayTarget.verse}`;
+    if (key !== targetKey) return;
+    if (lastAutoplayPlayedRef.current === key) return;
+    if (isTtsLoading) return;
+
+    lastAutoplayPlayedRef.current = key;
+    handlePlayAudio(state.verseText);
+  }, [
+    isAutoplayRunning,
+    autoplayTarget,
+    state.currentBook,
+    state.currentChapter,
+    state.currentVerse,
+    state.isLoading,
+    state.verseText,
+    isTtsLoading
+  ]);
 
   // Decorative Diamond Icon
   const DiamondIcon = () => (
@@ -521,7 +614,11 @@ export const SpanishBibleReader: React.FC = () => {
                     className="text-center relative"
                     ref={isCurrent ? containerRef : undefined}
                     onClick={() => {
-                      if (!isCurrent) setVerse(item.verse);
+                      if (!isCurrent) {
+                        setVerse(item.verse);
+                        setIsAutoplayRunning(false);
+                        setAutoplayTarget(null);
+                      }
                     }}
                   >
                     {/* Alignment Overlay for current verse only */}
@@ -639,7 +736,7 @@ export const SpanishBibleReader: React.FC = () => {
           })}
 
           {/* Verse Navigation */}
-          <div className="flex justify-center gap-4 pt-4">
+          <div className="flex flex-col sm:flex-row justify-center gap-3 pt-4">
             <GlassButton 
               onClick={handlePrevVerse} 
               disabled={state.currentVerse <= 1}
@@ -671,6 +768,26 @@ export const SpanishBibleReader: React.FC = () => {
             >
               Siguiente →
             </GlassButton>
+
+            {/* Autoplay Controls */}
+            {!isAutoplayRunning ? (
+              <GlassButton
+                onClick={startAutoplay}
+                variant="default"
+                className="flex-1 max-w-[200px]"
+                disabled={state.isLoading || !state.verseText}
+              >
+                ▶️ Autoplay desde aquí
+              </GlassButton>
+            ) : (
+              <GlassButton
+                onClick={stopAutoplay}
+                variant="default"
+                className="flex-1 max-w-[200px]"
+              >
+                ⏹ Detener autoplay
+              </GlassButton>
+            )}
           </div>
         </div>
 

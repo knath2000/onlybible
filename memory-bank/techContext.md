@@ -71,6 +71,14 @@ function normalizeText(text: string): string {
 - API word translations: 24-hour cache
 - TTS audio: not cached by default (provider-dependent); can add hash-based 24-hour cache if needed
 
+### Stacked Verse Window
+- Fetch a small window (e.g., ±2 verses) around the current verse for vertical stacking
+- Prefetch English translations for the window to enable instant toggle/hover
+
+### Audio Control
+- Per-verse TTS buttons use the verse text
+- Single-active audio: pause/reset any existing audio before starting a new one
+
 ### State Management
 ```typescript
 interface BibleState {

@@ -261,6 +261,11 @@ cacheService.setCachedData(cacheKey, data, 86400); // 24-hour cache
 - Optimize images and assets
 - Implement lazy loading for non-critical components
 
+## Stacked Verses & Audio (Latest Session)
+- Use a small sliding window of nearby verses to deliver a stacked vertical layout without full-chapter fetches
+- Prefetch English translations for the window to enable instant toggle and context-aware hover
+- Per-verse TTS buttons should pause/reset any currently playing audio before starting new playback
+
 ## API Integration Patterns (December 2025 Updates)
 
 ### Biblia.com API Integration (December 2025)

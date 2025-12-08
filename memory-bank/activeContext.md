@@ -65,6 +65,12 @@
 4. **Additional Bible Versions**: Support multiple Spanish/English translations
 5. **Search Functionality**: Add global search across the Bible
 
+## Latest Session (Stacked Verses & Audio Control)
+- ✅ Stacked verse cards: show a small window of nearby verses vertically with Spanish + prefetched English
+- ✅ Per-verse translation prefetch: fetch English for the window to enable immediate toggle/hover
+- ✅ Per-verse audio buttons: each card can play TTS using its own text
+- ✅ Single-active audio: starting a new verse playback stops any currently playing audio
+
 ## Active Decisions
 - **Design Philosophy**: "Luminous" aesthetic with dark purple backgrounds and gold accents
 - **Translation Strategy**: Hybrid approach using Dictionary + Real KJV Verse Context for maximum accuracy

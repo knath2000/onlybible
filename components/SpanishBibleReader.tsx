@@ -58,6 +58,7 @@ export const SpanishBibleReader: React.FC = () => {
   const [isPlaying, setIsPlaying] = useState(false);
   const [isAutoplayRunning, setIsAutoplayRunning] = useState(false);
   const [autoplayTarget, setAutoplayTarget] = useState<{ book: string; chapter: number; verse: number } | null>(null);
+  const [autoplayEnabled, setAutoplayEnabled] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const objectUrlRef = useRef<string | null>(null);
   const autoplayRunningRef = useRef(false);
@@ -92,6 +93,10 @@ export const SpanishBibleReader: React.FC = () => {
     if (savedSettings) {
       const parsed = JSON.parse(savedSettings);
       setTranslationMode(parsed.translationMode || 'verse');
+    }
+    const autoplayPref = localStorage.getItem('bible-app-autoplay-enabled');
+    if (autoplayPref !== null) {
+      setAutoplayEnabled(autoplayPref === 'true');
     }
   }, []);
 
@@ -245,12 +250,35 @@ export const SpanishBibleReader: React.FC = () => {
       audioRef.current = audio;
       audio.onended = () => {
         setIsPlaying(false);
-        if (autoplayRunningRef.current) {
+        if (autoplayEnabled) {
+          // If autoplay preference is enabled, automatically advance to next verse
+          if (!isAutoplayRunning) {
+            // Start autoplay sequence
+            setIsAutoplayRunning(true);
+            setAutoplayTarget({
+              book: state.currentBook,
+              chapter: state.currentChapter,
+              verse: state.currentVerse
+            });
+          }
           advanceAutoplay();
+        } else if (autoplayRunningRef.current) {
+          // If autoplay was running but preference is now disabled, stop it
+          stopAutoplay();
         }
       };
       await audio.play();
       setIsPlaying(true);
+      
+      // If autoplay is enabled and not already running, set it up for when current verse ends
+      if (autoplayEnabled && !isAutoplayRunning) {
+        setIsAutoplayRunning(true);
+        setAutoplayTarget({
+          book: state.currentBook,
+          chapter: state.currentChapter,
+          verse: state.currentVerse
+        });
+      }
     } catch (err) {
       console.error('TTS playback failed:', err);
       setError({
@@ -270,6 +298,23 @@ export const SpanishBibleReader: React.FC = () => {
   const stopAutoplay = () => {
     setIsAutoplayRunning(false);
     setAutoplayTarget(null);
+    if (audioRef.current) {
+      try {
+        audioRef.current.pause();
+        audioRef.current.currentTime = 0;
+      } catch {
+        // ignore pause errors
+      }
+    }
+    setIsPlaying(false);
+  };
+
+  const handleAutoplayToggle = (enabled: boolean) => {
+    setAutoplayEnabled(enabled);
+    localStorage.setItem('bible-app-autoplay-enabled', enabled.toString());
+    if (!enabled && isAutoplayRunning) {
+      stopAutoplay();
+    }
   };
 
   const getNextReference = async (): Promise<{ book: string; chapter: number; verse: number } | null> => {
@@ -297,7 +342,12 @@ export const SpanishBibleReader: React.FC = () => {
   };
 
   const advanceAutoplay = async () => {
-    if (!autoplayRunningRef.current) return;
+    if (!autoplayRunningRef.current || !autoplayEnabled) {
+      if (!autoplayEnabled) {
+        stopAutoplay();
+      }
+      return;
+    }
     const nextRef = await getNextReference();
     if (!nextRef) {
       stopAutoplay();
@@ -309,17 +359,6 @@ export const SpanishBibleReader: React.FC = () => {
       setChapter(nextRef.chapter);
     }
     setVerse(nextRef.verse);
-  };
-
-  const startAutoplay = () => {
-    setIsAutoplayRunning(true);
-    setAutoplayTarget({
-      book: state.currentBook,
-      chapter: state.currentChapter,
-      verse: state.currentVerse
-    });
-    lastAutoplayPlayedRef.current = null;
-    handlePlayAudio(state.verseText);
   };
 
   // Auto-play when the target verse is loaded and ready
@@ -508,6 +547,42 @@ export const SpanishBibleReader: React.FC = () => {
             </div>
           </GlassCard>
 
+          {/* Audio Settings Section */}
+          <GlassCard className="mb-6">
+            <h3 className="text-white font-semibold mb-4 flex items-center gap-2">
+              <span>🎵</span>
+              <span>Configuración de Audio</span>
+            </h3>
+            <div className="space-y-4">
+              {/* Autoplay Verses Toggle */}
+              <div className="bg-white/5 rounded-xl p-4 border border-white/10 flex items-start justify-between gap-4">
+                <div className="flex-1">
+                  <label className="text-white font-semibold block mb-1 cursor-pointer" onClick={() => handleAutoplayToggle(!autoplayEnabled)}>
+                    Autoplay de Versículos
+                  </label>
+                  <p className="text-white/60 text-sm">
+                    Reproducir automáticamente el siguiente versículo cuando termine el actual
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={autoplayEnabled}
+                  onClick={() => handleAutoplayToggle(!autoplayEnabled)}
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-[#f5a623] focus:ring-offset-2 focus:ring-offset-[#1a1a2e] ${
+                    autoplayEnabled ? 'bg-[#f5a623]' : 'bg-white/20'
+                  }`}
+                >
+                  <span
+                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                      autoplayEnabled ? 'translate-x-6' : 'translate-x-1'
+                    }`}
+                  />
+                </button>
+              </div>
+            </div>
+          </GlassCard>
+
           <GlassCard>
             <h3 className="text-white font-semibold mb-4">Información</h3>
             <div className="space-y-2 text-white/60 text-sm">
@@ -615,9 +690,10 @@ export const SpanishBibleReader: React.FC = () => {
                     ref={isCurrent ? containerRef : undefined}
                     onClick={() => {
                       if (!isCurrent) {
+                        if (isAutoplayRunning) {
+                          stopAutoplay();
+                        }
                         setVerse(item.verse);
-                        setIsAutoplayRunning(false);
-                        setAutoplayTarget(null);
                       }
                     }}
                   >
@@ -768,26 +844,6 @@ export const SpanishBibleReader: React.FC = () => {
             >
               Siguiente →
             </GlassButton>
-
-            {/* Autoplay Controls */}
-            {!isAutoplayRunning ? (
-              <GlassButton
-                onClick={startAutoplay}
-                variant="default"
-                className="flex-1 max-w-[200px]"
-                disabled={state.isLoading || !state.verseText}
-              >
-                ▶️ Autoplay desde aquí
-              </GlassButton>
-            ) : (
-              <GlassButton
-                onClick={stopAutoplay}
-                variant="default"
-                className="flex-1 max-w-[200px]"
-              >
-                ⏹ Detener autoplay
-              </GlassButton>
-            )}
           </div>
         </div>
 

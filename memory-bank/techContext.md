@@ -78,6 +78,7 @@ function normalizeText(text: string): string {
 ### Audio Control
 - Per-verse TTS buttons use the verse text
 - Single-active audio: pause/reset any existing audio before starting a new one
+- Autoplay preference: stored in localStorage (`bible-app-autoplay-enabled`); when enabled, playing a verse auto-advances sequentially; disabling stops autoplay and pauses current audio
 
 ### State Management
 ```typescript

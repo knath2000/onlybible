@@ -1,4 +1,6 @@
 import { CacheService } from './CacheService';
+import { BibleService } from './BibleService'; // For English proxy
+import { BibleVerse } from './BibleService';
 
 export interface TranslationResult {
   originalText: string;
@@ -416,11 +418,14 @@ export class TranslationService {
     'tanto': 'so much',
   };
 
+  private bibleService: BibleService; // Inject for English
   private cache: CacheService;
+  private englishApiUrl = 'http://localhost:3000/api/bible/english';
   private normalizedDictionary: Record<string, string | string[]> = {};
 
-  constructor(cache: CacheService) {
-    this.cache = cache;
+  constructor(bibleService: BibleService, cacheService: CacheService) {
+    this.bibleService = bibleService;
+    this.cache = cacheService;
     this.initializeNormalizedDictionary();
   }
 
@@ -754,6 +759,46 @@ export class TranslationService {
       .normalize('NFD')
       .replace(/[\u0300-\u036f]/g, '') // Remove accents
       .replace(/[.,\/#!$%\^&\*;:{}=\-_`~()¿¡"'«»]/g, ''); // Remove punctuation
+  }
+
+  async fetchEnglishRange(book: string, chapter: number, startVerse: number, endVerse: number): Promise<BibleVerse[]> {
+    const cacheKey = `english-range-${book.toLowerCase()}-${chapter}-${startVerse}-${endVerse}`;
+    const cached = this.cache.getCachedData(cacheKey);
+    if (cached) return cached as BibleVerse[];
+
+    try {
+      const url = `${this.englishApiUrl}?book=${encodeURIComponent(book)}&chapter=${chapter}&startVerse=${startVerse}&endVerse=${endVerse}`;
+      const response = await fetch(url);
+      if (!response.ok) throw new Error(`English range failed: ${response.status}`);
+
+      const data = await response.json();
+      const verses: BibleVerse[] = data.verses.map((v: any, i: number) => ({
+        book,
+        chapter,
+        verse: startVerse + i,
+        text: v.text || 'Translation not available',
+        reference: data.reference,
+        translation: 'KJV'
+      }));
+
+      this.cache.setCachedData(cacheKey, verses, 86400); // 24h
+      return verses;
+    } catch (error) {
+      console.error('English range error:', error);
+      // Fallback to dictionary or single fetches (simplified)
+      return []; // Or batch singles via bibleService
+    }
+  }
+
+  // Optional: For alignments (call per range in context later)
+  async computeAlignmentsForRange(spanishVerses: BibleVerse[]): Promise<Map<string, any>> {
+    const alignments = new Map();
+    for (const verse of spanishVerses) {
+      // Reuse existing computeAlignment(spanishText, englishText)
+      const english = await this.fetchEnglishVerse(verse.book, verse.chapter, verse.verse); // Existing helper
+      alignments.set(`${verse.chapter}:${verse.verse}`, this.computeAlignment(verse.text, english.text));
+    }
+    return alignments;
   }
 
   getSupportedLanguages(): string[] {

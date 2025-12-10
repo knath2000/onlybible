@@ -3,10 +3,13 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useBible } from '../lib/context/BibleContext';
 import { bibleService, translationService } from '../lib/api';
-import { GlassCard, GlassButton } from './ui';
+import { GlassCard, GlassButton, GlassInput } from './ui';
 import { LoadingSpinner } from './LoadingSpinner';
 import { WordTranslationTooltip } from './WordTranslationTooltip';
 import { AlignmentOverlay } from './AlignmentOverlay';
+import { SettingsPanel } from './SettingsPanel';
+import { SearchPanel } from './SearchPanel';
+import { InfiniteVerseList } from './InfiniteVerseList';
 
 interface BibleError {
   error: string;
@@ -26,7 +29,9 @@ export const SpanishBibleReader: React.FC = () => {
     setBook,
     setChapter,
     setVerse,
-    setTranslationMode
+    setTranslationMode,
+    toggleTranslation,
+    loadNextVerses
   } = useBible();
 
   // Alignment State
@@ -52,6 +57,11 @@ export const SpanishBibleReader: React.FC = () => {
   }, [state.verseText, state.translatedText]);
 
   const [error, setError] = useState<BibleError | null>(null);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [debugInfo, setDebugInfo] = useState(false);
+  const [isTestingConnection, setIsTestingConnection] = useState(false);
+  const [connectionTestResult, setConnectionTestResult] = useState<{ success: boolean; message: string } | null>(null);
   const [viewMode, setViewMode] = useState<ViewMode>('home');
   const [verseOfDay, setVerseOfDay] = useState<{ book: string; chapter: number; verse: number } | null>(null);
   const [isTtsLoading, setIsTtsLoading] = useState(false);
@@ -100,7 +110,18 @@ export const SpanishBibleReader: React.FC = () => {
     }
   }, []);
 
-  // Fetch verse of the day
+  const testConnection = async () => {
+    setIsTestingConnection(true);
+    setConnectionTestResult(null);
+    try {
+      const result = await bibleService.testConnection();
+      setConnectionTestResult(result);
+    } catch (error) {
+      setConnectionTestResult({ success: false, message: 'Test failed' });
+    }
+    setIsTestingConnection(false);
+  };
+
   useEffect(() => {
     if (verseOfDay && viewMode === 'home') {
       fetchVerse(verseOfDay.book, verseOfDay.chapter, verseOfDay.verse).catch((err) => {
@@ -390,6 +411,59 @@ export const SpanishBibleReader: React.FC = () => {
     <span className="text-[#f5a623] text-xl animate-pulse-gold">✦</span>
   );
 
+  const renderVerseOfDayContent = () => {
+    if (state.isLoading) {
+      return (
+        <div className="flex flex-col items-center gap-4">
+          <LoadingSpinner size="lg" />
+          <span className="text-white/60">Cargando el versículo del día...</span>
+        </div>
+      );
+    }
+    if (error) {
+      return (
+        <div className="text-center">
+          <p className="text-red-400 mb-2">{error.error}</p>
+          <GlassButton 
+            onClick={() => verseOfDay && fetchVerse(verseOfDay.book, verseOfDay.chapter, verseOfDay.verse)}
+            variant="outline"
+            size="sm"
+          >
+            Reintentar
+          </GlassButton>
+        </div>
+      );
+    }
+    return (
+      <div className="text-center">
+        {verseOfDay && (
+          <p className="text-[#f5a623] text-sm mb-3 font-medium">
+            {verseOfDay.book} {verseOfDay.chapter}:{verseOfDay.verse}
+          </p>
+        )}
+        <p className="text-white/90 text-lg sm:text-xl leading-relaxed italic font-[family-name:var(--font-playfair)]">
+          "{state.verseText}"
+        </p>
+        {state.showTranslation && state.translatedText && (
+          <p className="text-white/60 text-base mt-4 border-t border-white/10 pt-4">
+            {state.translatedText}
+          </p>
+        )}
+        <div className="mt-6 flex gap-3 justify-center">
+          <GlassButton onClick={handleTranslate} variant="ghost" size="sm">
+            {state.isTranslating ? (
+              <LoadingSpinner size="sm" />
+            ) : state.showTranslation ? (
+              'Ocultar Traducción'
+            ) : (
+              '🌐 Traducir'
+            )}
+          </GlassButton>
+        </div>
+      </div>
+    );
+  };
+
   // Home View
   if (viewMode === 'home') {
     return (
@@ -419,50 +493,7 @@ export const SpanishBibleReader: React.FC = () => {
           </h2>
           
           <GlassCard className="min-h-[200px] flex flex-col items-center justify-center">
-            {state.isLoading ? (
-              <div className="flex flex-col items-center gap-4">
-                <LoadingSpinner size="lg" />
-                <span className="text-white/60">Cargando el versículo del día...</span>
-              </div>
-            ) : error ? (
-              <div className="text-center">
-                <p className="text-red-400 mb-2">{error.error}</p>
-                <GlassButton 
-                  onClick={() => verseOfDay && fetchVerse(verseOfDay.book, verseOfDay.chapter, verseOfDay.verse)}
-                  variant="outline"
-                  size="sm"
-                >
-                  Reintentar
-                </GlassButton>
-              </div>
-            ) : (
-              <div className="text-center">
-                {verseOfDay && (
-                  <p className="text-[#f5a623] text-sm mb-3 font-medium">
-                    {verseOfDay.book} {verseOfDay.chapter}:{verseOfDay.verse}
-                  </p>
-                )}
-                <p className="text-white/90 text-lg sm:text-xl leading-relaxed italic font-[family-name:var(--font-playfair)]">
-                  "{state.verseText}"
-                </p>
-                {state.showTranslation && state.translatedText && (
-                  <p className="text-white/60 text-base mt-4 border-t border-white/10 pt-4">
-                    {state.translatedText}
-                  </p>
-                )}
-                <div className="mt-6 flex gap-3 justify-center">
-                  <GlassButton onClick={handleTranslate} variant="ghost" size="sm">
-                    {state.isTranslating ? (
-                      <LoadingSpinner size="sm" />
-                    ) : state.showTranslation ? (
-                      'Ocultar Traducción'
-                    ) : (
-                      '🌐 Traducir'
-                    )}
-                  </GlassButton>
-                </div>
-              </div>
-            )}
+            {renderVerseOfDayContent()}
           </GlassCard>
         </div>
 
@@ -596,271 +627,85 @@ export const SpanishBibleReader: React.FC = () => {
     );
   }
 
-  // Bible Reader View
+// Bible Reader View
+
   return (
-    <div className="min-h-screen relative">
-      {/* Floating Back Button */}
-      <button 
-        onClick={goHome}
-        className="fixed left-4 top-1/2 -translate-y-1/2 z-50 w-12 h-12 rounded-full bg-[rgba(37,37,66,0.8)] backdrop-blur-xl border border-white/10 flex items-center justify-center text-white/60 hover:text-white hover:bg-[rgba(37,37,66,0.95)] transition-all shadow-lg"
-        aria-label="Volver al inicio"
-      >
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M19 12H5M12 19l-7-7 7-7"/>
-        </svg>
-      </button>
-
-      {/* Gold Scrollbar Indicator */}
-      <div className="fixed right-2 top-1/4 bottom-1/4 w-1.5 rounded-full bg-white/10 z-40">
-        <div className="w-full h-1/3 rounded-full bg-gradient-to-b from-[#ffc857] to-[#f5a623]" />
-      </div>
-
-      {/* Main Content */}
-      <div className="max-w-3xl mx-auto px-4 py-6 pb-24">
-        {/* Header with Chapter Selector */}
-        <div className="text-center mb-8 pt-4">
-          <h1 className="font-[family-name:var(--font-playfair)] italic text-3xl text-gold-gradient mb-4">
-            {state.currentBook}
-          </h1>
-          
-          {/* Chapter Navigation */}
-          <div className="flex items-center justify-center gap-4 mb-4">
-            <button 
-              onClick={() => state.currentChapter > 1 && setChapter(state.currentChapter - 1)}
-              disabled={state.currentChapter <= 1}
-              className="text-white/40 hover:text-white disabled:opacity-30 transition-colors"
-            >
-              ◀
-            </button>
-            <select
-              value={state.currentChapter}
-              onChange={handleChapterChange}
-              className="bg-transparent text-[#f5a623] text-xl font-semibold focus:outline-none cursor-pointer text-center appearance-none"
-            >
-              {state.chapters.map((chapter) => (
-                <option key={chapter} value={chapter} className="bg-[#1a1a2e]">
-                  Capítulo {chapter}
-                </option>
-              ))}
-            </select>
-            <button 
-              onClick={() => setChapter(state.currentChapter + 1)}
-              disabled={state.currentChapter >= state.chapters.length}
-              className="text-white/40 hover:text-white disabled:opacity-30 transition-colors"
-            >
-              ▶
-            </button>
-          </div>
-
+    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-violet-900 text-white p-4 md:p-8">
+      {/* Header/Navigation remains fixed or at top */}
+      <div className="sticky top-0 z-10 bg-gray-900/80 backdrop-blur-md pb-4">
+        <div className="max-w-4xl mx-auto flex flex-col md:flex-row gap-4 items-center justify-between mb-6">
           {/* Book Selector */}
-          <select
-            value={state.currentBook}
-            onChange={handleBookChange}
-            className="bg-white/5 border border-white/20 rounded-xl px-4 py-2 text-white/80 text-sm focus:border-[#f5a623] focus:outline-none transition-colors"
-          >
-            {state.books.map((book) => (
-              <option key={book} value={book} className="bg-[#1a1a2e]">{book}</option>
-            ))}
-          </select>
-        </div>
-
-        {error && (
-          <div className="mb-6 p-4 bg-red-500/20 border border-red-400/30 rounded-xl text-center">
-            <p className="text-red-300 mb-2">{error.error}</p>
-            <GlassButton onClick={() => setError(null)} variant="ghost" size="sm">
-              Cerrar
-            </GlassButton>
-          </div>
-        )}
-
-        {/* Verse Cards */}
-        <div className="space-y-4">
-          {(state.verseList.length ? state.verseList : [{ verse: state.currentVerse, text: state.verseText, translation: state.translatedText }]).map((item) => {
-            const isCurrent = item.verse === state.currentVerse;
-            return (
-              <GlassCard key={`${state.currentChapter}-${item.verse}`} className="overflow-hidden">
-                {state.isLoading && isCurrent ? (
-                  <div className="flex flex-col items-center justify-center py-16 gap-4">
-                    <LoadingSpinner size="lg" />
-                    <span className="text-white/60">Cargando versículo...</span>
-                  </div>
-                ) : (
-                  <div
-                    className="text-center relative"
-                    ref={isCurrent ? containerRef : undefined}
-                    onClick={() => {
-                      if (!isCurrent) {
-                        if (isAutoplayRunning) {
-                          stopAutoplay();
-                        }
-                        setVerse(item.verse);
-                      }
-                    }}
-                  >
-                    {/* Alignment Overlay for current verse only */}
-                    {isCurrent && overlayProps && <AlignmentOverlay {...overlayProps} />}
-
-                    {/* Verse Number + Audio */}
-                    <div className="flex items-center justify-center gap-3 mb-6">
-                      <p className="text-[#f5a623] text-xl font-semibold">
-                        {state.currentChapter}:{item.verse}
-                      </p>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handlePlayAudio(item.text);
-                        }}
-                        disabled={isTtsLoading || !item.text}
-                        className="text-white/70 hover:text-white disabled:opacity-40 transition-colors flex items-center gap-1 text-sm"
-                        aria-label="Escuchar versículo"
-                      >
-                        {isTtsLoading ? '⏳' : '🔊'} {isPlaying ? 'Reproduciendo' : 'Escuchar'}
-                      </button>
-                    </div>
-
-                    {/* Spanish Verse Text */}
-                    <div className="mb-6 relative z-10">
-                      <p className="text-white text-2xl sm:text-3xl leading-relaxed font-[family-name:var(--font-playfair)]">
-                        {isCurrent
-                          ? state.verseText.split(' ').map((word, index) => (
-                              <React.Fragment key={index}>
-                                <span className="inline-block">
-                                  <WordTranslationTooltip word={word}>
-                                    <span
-                                      ref={el => { spanishWordRefs.current[index] = el; }}
-                                      onMouseEnter={() => setHoveredWordIndex(index)}
-                                      onMouseLeave={() => setHoveredWordIndex(null)}
-                                      className="hover:text-[#f5a623] transition-colors cursor-pointer"
-                                    >
-                                      {word}
-                                    </span>
-                                  </WordTranslationTooltip>
-                                </span>
-                                {index < state.verseText.split(' ').length - 1 && ' '}
-                              </React.Fragment>
-                            ))
-                          : item.text}
-                      </p>
-                    </div>
-
-                    {/* Divider */}
-                    <div className="w-full h-px bg-gradient-to-r from-transparent via-white/20 to-transparent mb-6" />
-
-                    {/* Reference */}
-                    <p className="text-[#f5a623] italic text-lg mb-4 font-[family-name:var(--font-playfair)]">
-                      {state.currentBook} {state.currentChapter}:{item.verse} — Reina-Valera 1960
-                    </p>
-
-                    {/* English Translation */}
-                    {state.showTranslation && !state.isTranslating && (isCurrent ? state.translatedText : item.translation) && (
-                      <>
-                        <div className="w-full h-px bg-gradient-to-r from-transparent via-white/10 to-transparent mb-4" />
-                        <p className="text-white/80 text-lg leading-relaxed relative z-10">
-                          {(isCurrent ? state.translatedText : item.translation || '').split(' ').map((word, index) => (
-                            <React.Fragment key={index}>
-                              {isCurrent ? (
-                                <span 
-                                  ref={el => { englishWordRefs.current[index] = el; }}
-                                  className={`inline-block transition-colors duration-300 ${
-                                    hoveredWordIndex !== null && alignmentMap.get(hoveredWordIndex)?.includes(index)
-                                      ? 'text-[#f5a623] font-medium'
-                                      : ''
-                                  }`}
-                                >
-                                  {word}
-                                </span>
-                              ) : (
-                                <span className="inline-block">{word}</span>
-                              )}
-                              {index < ((isCurrent ? state.translatedText : item.translation || '').split(' ').length - 1) && ' '}
-                            </React.Fragment>
-                          ))}
-                        </p>
-                      </>
-                    )}
-
-                    {/* Translation Loading */}
-                    {state.isTranslating && isCurrent && (
-                      <div className="flex items-center justify-center gap-3 py-4">
-                        <LoadingSpinner size="sm" />
-                        <span className="text-white/60">Cargando traducción...</span>
-                      </div>
-                    )}
-
-                    {/* Translate Button (current verse only) */}
-                    {isCurrent && !state.showTranslation && !state.isTranslating && (
-                      <button 
-                        onClick={handleTranslate}
-                        className="mt-4 text-[#f5a623]/70 hover:text-[#f5a623] text-sm transition-colors"
-                      >
-                        🌐 Ver traducción al inglés
-                      </button>
-                    )}
-
-                    {isCurrent && state.showTranslation && !state.isTranslating && (
-                      <button 
-                        onClick={handleTranslate}
-                        className="mt-4 text-white/40 hover:text-white/60 text-sm transition-colors"
-                      >
-                        Ocultar traducción
-                      </button>
-                    )}
-                  </div>
-                )}
-              </GlassCard>
-            );
-          })}
-
-          {/* Verse Navigation */}
-          <div className="flex flex-col sm:flex-row justify-center gap-3 pt-4">
-            <GlassButton 
-              onClick={handlePrevVerse} 
-              disabled={state.currentVerse <= 1}
-              variant="default"
-              className="flex-1 max-w-[150px]"
-            >
-              ← Anterior
-            </GlassButton>
-            
-            {/* Verse Selector */}
-            <select
-              value={state.currentVerse}
-              onChange={handleVerseChange}
-              className="bg-white/5 border border-white/20 rounded-xl px-4 py-2 text-[#f5a623] focus:border-[#f5a623] focus:outline-none transition-colors text-center"
-              disabled={state.verses.length === 0}
-            >
-              {state.verses.map((verse) => (
-                <option key={verse} value={verse} className="bg-[#1a1a2e]">
-                  Vers. {verse}
-                </option>
+          <GlassInput className="w-full md:w-64">
+            <select value={state.currentBook} onChange={handleBookChange} className="bg-transparent border-none text-white w-full">
+              {state.books.map(book => (
+                <option key={book} value={book}>{book}</option>
               ))}
             </select>
+          </GlassInput>
 
-            <GlassButton 
-              onClick={handleNextVerse} 
-              disabled={state.currentVerse >= state.verses.length}
-              variant="default"
-              className="flex-1 max-w-[150px]"
-            >
-              Siguiente →
+          {/* Chapter Selector */}
+          <GlassInput className="w-full md:w-32">
+            <select value={state.currentChapter} onChange={handleChapterChange} className="bg-transparent border-none text-white w-full">
+              {state.chapters.map(ch => (
+                <option key={ch} value={ch}>{ch}</option>
+              ))}
+            </select>
+          </GlassInput>
+
+          {/* Verse Selector (optional for infinite, can hide or use for jump) */}
+          <GlassInput className="w-full md:w-32">
+            <select value={state.currentVerse} onChange={handleVerseChange} className="bg-transparent border-none text-white w-full">
+              {state.verses.map(v => (
+                <option key={v} value={v}>{v}</option>
+              ))}
+            </select>
+          </GlassInput>
+
+          {/* Translation Toggle */}
+          <GlassButton onClick={translateVerse} disabled={state.isTranslating}>
+            {state.isTranslating ? 'Traduciendo...' : 'Traducir Versículo'}
+          </GlassButton>
+
+          {/* Test Connection Button */}
+          <GlassButton onClick={testConnection} disabled={isTestingConnection}>
+            {isTestingConnection ? 'Probando...' : 'Probar Conexión'}
+          </GlassButton>
+
+          {/* Settings and Search */}
+          <div className="flex gap-2">
+            <GlassButton onClick={() => setSettingsOpen(!settingsOpen)} size="sm">
+              ⚙️ Ajustes
+            </GlassButton>
+            <GlassButton onClick={() => setSearchOpen(!searchOpen)} size="sm">
+              🔍 Buscar
+            </GlassButton>
+            <GlassButton onClick={() => setDebugInfo(!debugInfo)} size="sm" variant="outline">
+              Debug
             </GlassButton>
           </div>
         </div>
-
-        {/* Footer Tip */}
-        <p className="text-center text-white/30 text-sm mt-8">
-          ✨ Toca cualquier palabra para ver su traducción
-        </p>
       </div>
 
-      {/* Settings Button - Fixed */}
-      <button 
-        onClick={() => setViewMode('settings')}
-        className="fixed right-4 top-4 z-50 w-10 h-10 rounded-full bg-[rgba(37,37,66,0.8)] backdrop-blur-xl border border-white/10 flex items-center justify-center text-white/60 hover:text-white transition-all"
-        aria-label="Ajustes"
-      >
-        ⚙️
-      </button>
+      <main className="max-w-4xl mx-auto mt-6">
+        {state.isLoading && state.infiniteVerses.length === 0 ? (
+          <div className="flex justify-center items-center h-64">
+            <LoadingSpinner />
+          </div>
+        ) : (
+          <InfiniteVerseList />
+        )}
+      </main>
+
+      {/* Debug Info Panel */}
+      {debugInfo && (
+        <div className="fixed bottom-4 right-4 w-80 bg-gray-800/90 backdrop-blur-md p-4 rounded-lg">
+          {/* Debug content */}
+        </div>
+      )}
+
+      {/* SettingsPanel and SearchPanel - assume existing */}
+      {settingsOpen && <SettingsPanel isOpen={settingsOpen} onClose={() => setSettingsOpen(false)} />}
+      {searchOpen && <SearchPanel isOpen={searchOpen} onClose={() => setSearchOpen(false)} />}
     </div>
   );
 };

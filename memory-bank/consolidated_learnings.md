@@ -265,6 +265,7 @@ cacheService.setCachedData(cacheKey, data, 86400); // 24-hour cache
 - Use a small sliding window of nearby verses to deliver a stacked vertical layout without full-chapter fetches
 - Prefetch English translations for the window to enable instant toggle and context-aware hover
 - Per-verse TTS buttons should pause/reset any currently playing audio before starting new playback
+- Settings-driven autoplay: toggle lives in Settings; when enabled, playback auto-advances to the next verse; disabling stops autoplay immediately and pauses audio
 
 ## API Integration Patterns (December 2025 Updates)
 
@@ -388,333 +389,46 @@ class BibleService {
 6. **Deployment Ready**: Create comprehensive deployment guides with troubleshooting
 7. **Documentation**: Maintain detailed documentation of all decisions and learnings
 
-## Production Deployment Checklist (December 2025 Updates)
+## Infinite Scrolling Implementation (Latest Session)
 
-### Pre-Deployment
-- [x] API integration complete with Biblia.com
-- [x] Error handling enhanced with detailed logging
-- [x] UI components complete with Spanish Bible reader
-- [x] Environment variables properly configured
-- [x] Vercel deployment guide created
-- [x] Built-in testing tools implemented
-- [x] Security considerations addressed
-
-### Post-Deployment
-- [ ] Deploy to Vercel with domain-restricted API key
-- [ ] Test API integration with Vercel domain
-- [ ] Monitor performance and error rates
-- [ ] Validate Spanish Bible reading functionality
-- [ ] Regenerate API key for production use
-- [ ] Update environment variables with new API key
-
-### Performance Optimization
-- [x] API route caching headers configured (1-hour cache)
-- [x] 15-second timeout for API requests
-- [x] Proper User-Agent headers for API compatibility
-- [x] Comprehensive error logging for monitoring
-
-## Key Takeaways (December 2025)
-
-1. **API Integration Complexity**: Domain-restricted API keys add complexity but improve security
-2. **Error Handling Criticality**: Comprehensive error handling significantly improves user experience
-3. **Built-in Diagnostics**: Including testing tools in the application interface speeds up troubleshooting
-4. **Security Awareness**: API key exposure is a serious security concern requiring immediate action
-5. **Documentation Value**: Comprehensive deployment guides ensure successful production deployments
-6. **User Experience Focus**: Spanish error messages and troubleshooting steps improve usability for target audience
-7. **Debugging Importance**: Detailed logging helps quickly identify and resolve API integration issues
-8. **Deployment Preparation**: Thorough preparation including environment configuration and domain registration is essential
-9. **API-Only Architecture**: Removing mock data simplifies architecture but requires robust error handling
-10. **Continuous Learning**: Each integration challenge provides valuable lessons for future projects
-11. **Unicode Normalization**: Always normalize accented characters using NFD before lookups
-12. **Free APIs First**: Evaluate free Bible APIs before paid services - often sufficient
-13. **Real Translations Over Machine**: Using actual Bible verses provides better accuracy than machine translation
-14. **Separate Loading States**: Different operations (fetch vs translate) deserve separate loading indicators
-15. **Toggle State Optimization**: Cache translations and toggle visibility rather than re-fetching
-16. **Auto-Clear Strategy**: Clear dependent data (translations) when source data (verses) changes
-
-## Context-Aware Translation (December 2025)
-
-### Fuzzy Matching Pattern
-**Problem**: Words like "tierra" can mean "earth" or "land". Dictionary lookups are ambiguous.
-**Solution**: Cross-reference dictionary candidates against the actual English translation of the verse.
+### TanStack Query Integration
+**Pattern**: Use `useInfiniteQuery` for efficient pagination and caching of verse chunks.
 
 **Implementation**:
 ```typescript
-async translateWord(word, contextVerse) {
-  const candidates = dictionary[word]; // ['earth', 'land']
-  
-  if (contextVerse) {
-    // Check if any candidate appears in the actual verse text
-    for (const candidate of candidates) {
-      if (contextVerse.toLowerCase().includes(candidate.toLowerCase())) {
-        return candidate; // Return the one that matches context
-      }
-    }
+const { data, fetchNextPage } = useInfiniteQuery({
+  queryKey: ['infinite-verses', book, chapter],
+  queryFn: ({ pageParam }) => fetchVerseRange(..., pageParam),
+  getNextPageParam: (lastPage, allPages) => ...
+});
+```
+
+**Key Insights**:
+- **Automatic Caching**: TanStack Query handles caching and stale-while-revalidate logic out of the box.
+- **Simplified State**: Reduces boilerplate in `BibleContext` by offloading fetch logic.
+- **Integration**: Syncing TanStack state to a global reducer allows for a hybrid approach where UI components consume context but data logic is managed by the library.
+
+### Infinite Scroll UI
+**Pattern**: Intersection Observer API for detecting scroll position and triggering data loads.
+
+**Implementation**:
+```typescript
+const observer = new IntersectionObserver((entries) => {
+  if (entries[0].isIntersecting && hasNextPage) {
+    loadNextVerses();
   }
-  
-  return candidates[0]; // Fallback
-}
-```
-
-**Key Insight**: 
-- Drastically improves perceived accuracy.
-- Requires access to full verse translation even for single word lookups.
-- Solved by background fetching the full translation when the verse loads.
-
-### TypeScript Object Literal Constraints
-**Learning**: TypeScript compilers (and build tools like Turbopack) are strict about duplicate keys in object literals.
-**Issue**:
-```typescript
-const dict = {
-  'fue': 'was',
-  // ... 100 lines later ...
-  'fue': 'went' // Error! Duplicate identifier
-}
-```
-**Fix**:
-```typescript
-const dict = {
-  'fue': ['was', 'went'] // Use array for multiple meanings
-}
-```
-**Takeaway**: Always consolidate definitions for polysemous words into a single entry, preferably an array.
-
-## Word Alignment & Visual Mapping (Latest Session)
-
-### Alignment Algorithm Pattern
-**Problem**: Need to visually connect Spanish words to their English equivalents in the verse.
-
-**Solution**: Multi-step alignment process:
-1. Tokenize both Spanish and English texts
-2. For each Spanish word, look up candidates in dictionary
-3. Find matches in English word array
-4. Use positional heuristic: select English word closest to relative position
-5. Return mapping: `Map<SpanishIndex, EnglishIndex[]>`
-
-**Implementation**:
-```typescript
-computeAlignment(spanishText: string, englishText: string): Map<number, number[]> {
-  // Tokenize
-  const spanishWords = spanishText.split(' ');
-  const englishWords = englishText.split(' ');
-  
-  // Build English word index map
-  const englishWordIndices: Record<string, number[]> = {};
-  englishWords.forEach((word, index) => {
-    const cleanWord = normalizeWord(word);
-    if (!englishWordIndices[cleanWord]) {
-      englishWordIndices[cleanWord] = [];
-    }
-    englishWordIndices[cleanWord].push(index);
-  });
-  
-  // Match Spanish to English using dictionary + position
-  spanishWords.forEach((spanishWord, sIndex) => {
-    const candidates = dictionary[normalizeWord(spanishWord)];
-    // Find best match using positional heuristic
-    // ...
-  });
-}
+});
 ```
 
 **Key Insights**:
-- **Positional Heuristic**: `expectedIndex = (sIndex / spanishLength) * englishLength` helps disambiguate multiple matches
-- **Dictionary First**: Only align words that exist in dictionary (high accuracy, lower coverage)
-- **Multiple Targets**: One Spanish word can map to multiple English words (array return type)
+- **Performance**: Native Observer is more performant than scroll event listeners.
+- **UX**: Adding a "sentinel" element at the bottom of the list provides a reliable trigger point.
+- **Feedback**: Loading spinners and end-of-chapter messages are critical for user awareness.
 
-### SVG Overlay Pattern
-**Problem**: Need to draw dynamic lines between words that may be at different positions.
-
-**Solution**: SVG overlay with absolute positioning and Bezier curves.
-
-**Implementation**:
-```typescript
-// AlignmentOverlay.tsx
-<svg className="absolute inset-0 pointer-events-none">
-  <defs>
-    <linearGradient id="gold-gradient">...</linearGradient>
-  </defs>
-  {targetRects.map((targetRect, index) => {
-    const start = getRelativePoint(sourceRect, 'bottom');
-    const end = getRelativePoint(targetRect, 'top');
-    const pathData = `M ${start.x} ${start.y} C ${cp1.x} ${cp1.y}, ${cp2.x} ${cp2.y}, ${end.x} ${end.y}`;
-    return <path d={pathData} stroke="url(#gold-gradient)" />;
-  })}
-</svg>
-```
+### Hybrid Navigation
+**Pattern**: Combine infinite scroll with traditional jump controls (dropdowns, search).
 
 **Key Insights**:
-- **Absolute Positioning**: SVG positioned absolutely over verse card
-- **Relative Coordinates**: Calculate positions relative to container for accurate placement
-- **Bezier Curves**: Cubic Bezier paths create smooth, elegant connections
-- **Animation**: CSS animations (draw-line) provide smooth appearance
-- **Pointer Events**: `pointer-events-none` prevents SVG from blocking interactions
-
-### DOM Refs Pattern for Word Positioning
-**Problem**: Need to get exact screen coordinates of word elements for line drawing.
-
-**Solution**: Use React refs to capture element references and calculate bounding boxes.
-
-**Implementation**:
-```typescript
-const spanishWordRefs = useRef<(HTMLElement | null)[]>([]);
-const englishWordRefs = useRef<(HTMLElement | null)[]>([]);
-
-// In render
-{spanishWords.map((word, index) => (
-  <span ref={el => { spanishWordRefs.current[index] = el; }}>
-    {word}
-  </span>
-))}
-
-// On hover
-const spanishEl = spanishWordRefs.current[hoveredWordIndex];
-const spanishRect = spanishEl.getBoundingClientRect();
-const containerRect = containerRef.current.getBoundingClientRect();
-```
-
-**Key Insights**:
-- **Ref Arrays**: Use arrays to store refs for multiple elements
-- **BoundingClientRect**: Provides precise position and size information
-- **Relative Calculation**: Subtract container position for accurate overlay coordinates
-- **Reset on Change**: Clear and reinitialize refs when text changes
-
-## Book Name Parsing (Latest Session)
-
-### Right-to-Left Parsing Pattern
-**Problem**: Multi-word book names like "2 Reyes" break when parsing "2 Reyes 1:1" because spaces are converted to `+` and then split incorrectly.
-
-**Solution**: Parse from right to left (verse → chapter → book).
-
-**Implementation**:
-```typescript
-// Find verse (after last colon)
-const lastColonIndex = passage.lastIndexOf(':');
-const verse = parseInt(passage.substring(lastColonIndex + 1)) || 1;
-
-// Find chapter (last number before colon)
-const bookChapterPart = passage.substring(0, lastColonIndex).trim();
-const chapterMatch = bookChapterPart.match(/(\d+)\s*$/);
-const chapter = parseInt(chapterMatch[1]) || 1;
-
-// Everything before chapter is book name
-const chapterIndex = bookChapterPart.lastIndexOf(chapterMatch[1]);
-const spanishBookName = bookChapterPart.substring(0, chapterIndex).trim();
-```
-
-**Key Insights**:
-- **Right-to-Left**: Parsing from end ensures correct extraction of verse and chapter
-- **Regex for Chapter**: `/(\d+)\s*$/` matches last number at end of string
-- **Preserve Spaces**: Don't convert spaces to `+` until after parsing book name
-- **Edge Cases**: Handle missing chapter/verse gracefully with defaults
-
-## Dictionary Normalization (Latest Session)
-
-### Pre-Normalization Pattern
-**Problem**: Dictionary keys like `'creó'` contain accents, but `normalizeWord()` strips accents before lookup, causing misses.
-
-**Solution**: Normalize all dictionary keys at construction time.
-
-**Implementation**:
-```typescript
-private normalizedDictionary: Record<string, string | string[]> = {};
-
-constructor(cache: CacheService) {
-  this.cache = cache;
-  this.initializeNormalizedDictionary();
-}
-
-private initializeNormalizedDictionary() {
-  Object.keys(this.wordDictionary).forEach(key => {
-    const normalizedKey = this.normalizeWord(key);
-    this.normalizedDictionary[normalizedKey] = this.wordDictionary[key];
-    
-    // Also keep original key if different
-    if (normalizedKey !== key.toLowerCase()) {
-      this.normalizedDictionary[key.toLowerCase()] = this.wordDictionary[key];
-    }
-  });
-}
-```
-
-**Key Insights**:
-- **Construction-Time**: Normalize once at initialization, not on every lookup
-- **Dual Storage**: Keep both normalized and original keys for maximum compatibility
-- **Performance**: Pre-computation avoids repeated normalization overhead
-- **Accent Handling**: Ensures words like "creó" are found even when normalized to "creo"
-
-## API Fallback Strategy (Latest Session)
-
-### External Translation API Integration
-**Problem**: Local dictionary can't cover all words; need fallback for unknown terms.
-
-**Solution**: Integrate MyMemory API as fallback when dictionary lookup fails.
-
-**Implementation**:
-```typescript
-// New API route: /api/translate/word
-export async function GET(request: Request) {
-  const word = searchParams.get('word');
-  const response = await fetch(
-    `https://api.mymemory.translated.net/get?q=${word}&langpair=es|en`
-  );
-  return NextResponse.json({ translation: data.responseData.translatedText });
-}
-
-// In TranslationService
-if (!translationCandidates) {
-  const apiTranslation = await this.fetchWordTranslation(word);
-  if (apiTranslation) {
-    // Cache and add to dictionary
-    this.wordDictionary[cleanWord] = apiTranslation;
-    translationCandidates = [apiTranslation];
-  }
-}
-```
-
-**Key Insights**:
-- **Free Tier**: MyMemory offers 5000 words/day without API key
-- **Caching**: Cache API responses for 24 hours to minimize requests
-- **Dictionary Update**: Add successful API translations to local dictionary
-- **Graceful Degradation**: Return original word if API also fails
-- **Rate Limiting**: Free tier sufficient for typical usage patterns
-
-## Audio TTS (Latest Session)
-
-### Cloud TTS Proxy Pattern
-**Problem**: Need tap-to-listen audio for verses with minimal client complexity.
-
-**Solution**: Add a server-side `/api/tts` route that proxies to Azure Speech, returning MP3 audio.
-
-**Implementation**:
-```typescript
-// /api/tts (Azure Speech)
-const ssml = `<speak version='1.0' xml:lang='${lang}'><voice xml:lang='${lang}' name='${voice}'>${text}</voice></speak>`;
-fetch(`https://${region}.tts.speech.microsoft.com/cognitiveservices/v1`, { headers, body: ssml });
-```
-
-**Key Insights**:
-- **Env Config**: `TTS_PROVIDER`, `TTS_API_KEY`, `TTS_REGION`, `TTS_VOICE` (e.g., es-ES-AlvaroNeural)
-- **Output Format**: MP3 24kHz/48kbps mono for good quality/size
-- **Error Handling**: Return JSON error on provider failure; keep UI responsive
-- **Caching**: Potential to cache by hash(text+voice) for 24h if needed
-
-### Client Playback Pattern
-**Problem**: Play returned audio without heavy player dependencies.
-
-**Solution**: Use `new Audio(objectUrl)` with loading/playing flags and cleanup.
-
-**Implementation**:
-```typescript
-const res = await fetch(`/api/tts?text=...`);
-const blob = await res.blob();
-const url = URL.createObjectURL(blob);
-const audio = new Audio(url);
-audio.onended = () => setIsPlaying(false);
-await audio.play();
-```
-
-**Key Insights**:
-- **Cleanup**: Revoke object URLs on unmount and pause previous audio
-- **States**: Track `isTtsLoading` and `isPlaying` for UI feedback
-- **Fallback**: If no key/config, show error; consider Web Speech fallback later
+- **Flexibility**: Users want to browse continuously but also need to jump to specific passages.
+- **Deep Linking**: Updating URL anchors (e.g., `#Genesis1:1`) during scroll enables bookmarking and sharing specific verses even within an infinite list.
+- **Smooth Scrolling**: `scrollIntoView` behavior is essential for search-to-verse navigation within a loaded list.

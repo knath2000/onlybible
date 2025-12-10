@@ -5,7 +5,7 @@
 - Dual API proxy routes (Spanish + English Bible)
 - Service layer for API integration
 - Component-based UI structure
-- State management with React Context + useReducer
+- State management with React Context + useReducer + TanStack Query
 - Cache-first data strategy with 24-hour TTL
 
 ## Key Technical Decisions
@@ -15,13 +15,14 @@
 4. **Caching Strategy**: Multi-level caching (verse, translation, word, API translations)
 5. **Error Handling**: Comprehensive error boundaries with fallback dictionary
 6. **UI Framework**: Glassmorphic design with Tailwind CSS
-7. **State Management**: React Context + useReducer with separate loading states
+7. **State Management**: React Context + useReducer with separate loading states; TanStack Query for infinite scrolling
 8. **Context-Aware Translation**: Word translations are disambiguated using the full verse context
 9. **Word Alignment**: Visual mapping with SVG Bezier curves connecting aligned words
 10. **API Fallback**: MyMemory API integration for unknown words when dictionary fails
 11. **Right-to-Left Parsing**: Parse passage strings from end to handle multi-word book names
 12. **Pre-Normalized Dictionary**: Normalize dictionary keys at construction time for accent handling
 13. **Cloud TTS Proxy**: `/api/tts` Azure Speech route returning MP3 for verse audio playback
+14. **Infinite Scrolling**: `useInfiniteQuery` + Intersection Observer for seamless verse loading
 
 ## Design Patterns
 
@@ -53,21 +54,35 @@ isLoading: boolean;      // Verse operations
 isTranslating: boolean;  // Translation operations
 ```
 
-### Stacked Verse Window Pattern
+### Infinite Scroll Pattern (New)
 ```typescript
-// Fetch a small window around the current verse for vertical stacking
-const windowSize = 5;
-const offset = Math.floor(windowSize / 2);
-const start = Math.max(1, verse - offset);
-const end = Math.min(totalVerses, verse + offset);
-const verseNumbers = Array.from({ length: end - start + 1 }, (_, i) => start + i);
+// useInfiniteQuery handles pagination logic
+const { data, fetchNextPage } = useInfiniteQuery({
+  queryKey: ['verses', book, chapter],
+  queryFn: ({ pageParam }) => fetchVerseRange(..., pageParam),
+  getNextPageParam: (lastPage, allPages) => ...
+});
+
+// Intersection Observer triggers fetch
+const observer = new IntersectionObserver((entries) => {
+  if (entries[0].isIntersecting && hasNextPage) fetchNextPage();
+});
 ```
-- Prefetch English translations for the window to enable instant toggle/hover
-- Render cards top-to-bottom; clicking a card sets it as the active verse
+
+### Stacked Verse Window Pattern (Legacy/Refactored)
+*Replaced by Infinite Scroll List, but logic remains for initial fetches.*
+- Fetch chunks (default 20 verses) instead of small windows.
+- Prefetch English translations for the chunk to enable instant toggle/hover.
 
 ### Single-Active Audio Pattern
 - Each verse card has its own TTS button using the verse text
 - Before playing new audio, pause/reset any existing `Audio` instance so only one plays at a time
+
+### Settings-Driven Autoplay Pattern
+- Store autoplay preference in localStorage (`bible-app-autoplay-enabled`)
+- Toggle lives in Settings; when enabled, playing a verse auto-continues to the next
+- If user disables the toggle, stop autoplay immediately and pause current audio
+- Autoplay advances on `onended`, respecting the preference flag
 
 ### Toggle with Cache
 ```typescript
@@ -87,31 +102,28 @@ fetchEnglishVerse().then(data => dispatch(SET_TRANSLATED_TEXT));
 
 ## Component Relationships
 ```
-BibleProvider (Context)
-    └── SpanishBibleReader
-            ├── Book/Chapter/Verse Selectors
-            ├── Navigation Buttons
-            ├── Translate Button → translateVerse()
-            ├── Test Connection Button
-            ├── Spanish Verse Display
-            │       └── WordTranslationTooltip (per word)
-            ├── English Translation Display (KJV)
-            └── Debug Info Panel
+ClientProviders (QueryClient)
+    └── BibleProvider (Context + TanStack Query)
+            └── SpanishBibleReader
+                    ├── Header (Book/Chapter Selectors, Search, Settings)
+                    └── InfiniteVerseList
+                            └── VerseItem (Repeated)
+                                    ├── WordTranslationTooltip
+                                    ├── AlignmentOverlay
+                                    └── Audio/Translate Controls
 ```
 
 ## Data Flow
 
-### Verse Fetching
+### Verse Fetching (Infinite)
 ```
-User selects verse → setBook/setChapter/setVerse
-    → useEffect triggers fetchVerse()
-    → BibleService.fetchVerse()
-    → /api/bible?passage=...
-    → biblia-api.vercel.app
-    → dispatch SET_VERSE_TEXT
-    → Clear translatedText & showTranslation
-    → [Background] TranslationService.fetchEnglishVerse()
-    → [Background] dispatch SET_TRANSLATED_TEXT (Silent)
+User selects book/chapter → BibleContext (useInfiniteQuery)
+    → BibleService.fetchVerseRange()
+    → /api/bible?startVerse=...&endVerse=...
+    → biblia-api.vercel.app (Batched calls)
+    → TanStack Query Cache
+    → BibleContext State (infiniteVerses)
+    → UI Update
 ```
 
 ### Translation Flow
@@ -141,7 +153,7 @@ User hovers over word
 ```
 
 ## Critical Implementation Paths
-1. **Verse Display**: API Route → Service → Context → Component
+1. **Verse Display**: API Route → Service → TanStack Query → Context → Infinite List
 2. **Translation**: Button → Context Method → Service → API → Context → UI
 3. **Error Handling**: API Error → Fallback Dictionary → User Notification
 4. **Caching**: Check Cache → Fetch if Missing → Store with TTL → Return

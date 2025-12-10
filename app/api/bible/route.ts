@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { normalizeText } from '../../../lib/utils'; // Corrected path
 
 interface BibleVerse {
   reference: string;
@@ -10,262 +11,60 @@ interface BibleVerse {
 }
 
 /**
- * Normalize text by removing accents/diacritics and converting to lowercase
- * This ensures consistent matching regardless of character encoding
- */
-function normalizeText(text: string): string {
-  return text
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .toLowerCase()
-    .trim();
-}
-
-/**
  * GET /api/bible?passage=Juan+3:16
  * Fetches Bible content from Free RVR60 API (biblia-api.vercel.app) with enhanced error handling
  */
 export async function GET(request: NextRequest): Promise<NextResponse> {
-  const { searchParams } = new URL(request.url);
-  const passage = searchParams.get('passage');
-  
-  // Extract book, chapter, verse from passage like "Juan+3:16" or "Juan 3:16"
-  if (!passage) {
-    return NextResponse.json(
-      {
-        error: 'Missing required parameter: passage is required',
-        example: 'Juan 3:16 or Juan+3:16'
-      },
-      { status: 400 }
-    );
-  }
-
-  // Parse passage from right to left to handle multi-word book names
-  // Examples: "2 Reyes 1:1", "Juan 3:16", "1 Corintios 2:5"
-  let verse = 1;
-  let chapter = 1;
-  let spanishBookName = '';
-  
-  // Find the verse (after the last colon)
-  const lastColonIndex = passage.lastIndexOf(':');
-  if (lastColonIndex !== -1) {
-    const verseStr = passage.substring(lastColonIndex + 1).trim();
-    verse = parseInt(verseStr) || 1;
-    
-    // Everything before the colon is book + chapter
-    const bookChapterPart = passage.substring(0, lastColonIndex).trim();
-    
-    // Find the last number in the string (this is the chapter)
-    // Match the last sequence of digits that appears at the end (possibly with trailing spaces)
-    const chapterMatch = bookChapterPart.match(/(\d+)\s*$/);
-    if (chapterMatch) {
-      chapter = parseInt(chapterMatch[1]) || 1;
-      // Everything before the chapter number is the book name
-      const chapterIndex = bookChapterPart.lastIndexOf(chapterMatch[1]);
-      spanishBookName = bookChapterPart.substring(0, chapterIndex).trim();
-    } else {
-      // No chapter number found, treat entire string as book name
-      spanishBookName = bookChapterPart;
-    }
-  } else {
-    // No colon found, treat entire passage as book name
-    spanishBookName = passage.trim();
-  }
-  
-  // Clean up book name: remove any trailing + or spaces
-  spanishBookName = spanishBookName.replace(/[\+\s]+$/, '').trim();
-  
-  // If book name is empty, return error
-  if (!spanishBookName) {
-    return NextResponse.json(
-      {
-        error: 'Invalid passage format. Could not extract book name.',
-        example: '2 Reyes 1:1 or Juan 3:16'
-      },
-      { status: 400 }
-    );
-  }
-  
-  // Normalize the input book name (removes accents, lowercase)
-  const normalizedInput = normalizeText(spanishBookName);
-  
-  // Map normalized Spanish book names to API-compatible format
-  // Keys are normalized (no accents, lowercase) for reliable matching
-  const bookNameMapping: Record<string, string> = {
-    'genesis': 'genesis',
-    'exodo': 'exodo', 
-    'levitico': 'levitico',
-    'numeros': 'numeros',
-    'deuteronomio': 'deuteronomio',
-    'josue': 'josue',
-    'jueces': 'jueces',
-    'rut': 'rut',
-    '1 samuel': '1samuel',
-    '2 samuel': '2samuel',
-    '1 reyes': '1reyes',
-    '2 reyes': '2reyes',
-    '1 cronicas': '1cronicas',
-    '2 cronicas': '2cronicas',
-    'esdras': 'esdras',
-    'nehemias': 'nehemias',
-    'ester': 'ester',
-    'job': 'job',
-    'salmos': 'salmos',
-    'proverbios': 'proverbios',
-    'eclesiastes': 'eclesiastes',
-    'cantares': 'cantares',
-    'isaias': 'isaias',
-    'jeremias': 'jeremias',
-    'lamentaciones': 'lamentaciones',
-    'ezequiel': 'ezequiel',
-    'daniel': 'daniel',
-    'oseas': 'oseas',
-    'joel': 'joel',
-    'amos': 'amos',
-    'abdias': 'abdias',
-    'jonas': 'jonas',
-    'miqueas': 'miqueas',
-    'nahum': 'nahum',
-    'habacuc': 'habacuc',
-    'sofonias': 'sofonias',
-    'hageo': 'hageo',
-    'zacarias': 'zacarias',
-    'malaquias': 'malaquias',
-    'mateo': 'mateo',
-    'marcos': 'marcos',
-    'lucas': 'lucas',
-    'juan': 'juan',
-    'hechos': 'hechos',
-    'romanos': 'romanos',
-    '1 corintios': '1corintios',
-    '2 corintios': '2corintios',
-    'galatas': 'galatas',
-    'efesios': 'efesios',
-    'filipenses': 'filipenses',
-    'colosenses': 'colosenses',
-    '1 tesalonicenses': '1tesalonicenses',
-    '2 tesalonicenses': '2tesalonicenses',
-    '1 timoteo': '1timoteo',
-    '2 timoteo': '2timoteo',
-    'tito': 'tito',
-    'filemon': 'filemon',
-    'hebreos': 'hebreos',
-    'santiago': 'santiago',
-    '1 pedro': '1pedro',
-    '2 pedro': '2pedro',
-    '1 juan': '1juan',
-    '2 juan': '2juan',
-    '3 juan': '3juan',
-    'judas': 'judas',
-    'apocalipsis': 'apocalipsis'
-  };
-  
-  // Get API-compatible book name using normalized lookup
-  const book = bookNameMapping[normalizedInput] || normalizedInput;
-  
-  // Construct free RVR60 API URL (no key required)
-  const apiUrl = `https://biblia-api.vercel.app/api/v1/${book.toLowerCase()}/${chapter}/${verse}`;
-
-  console.log('Free Bible API Request:', {
-    originalBook: spanishBookName,
-    normalizedInput: normalizedInput,
-    resolvedBook: book,
-    chapter,
-    verse,
-    apiUrl,
-    timestamp: new Date().toISOString()
-  });
-
   try {
-    const response = await fetch(apiUrl, {
-      method: 'GET',
-      headers: {
-        'Accept': 'application/json',
-        'Content-Type': 'application/json',
-        'User-Agent': 'BibleApp/1.0 (Next.js App Router)'
-      },
-      signal: AbortSignal.timeout(15000), // 15 second timeout
-    });
+    const { searchParams } = new URL(request.url);
+    const book = searchParams.get('book') || 'genesis'; // Default for testing
+    const chapter = parseInt(searchParams.get('chapter') || '1');
+    const startVerse = parseInt(searchParams.get('startVerse') || '1');
+    const endVerse = parseInt(searchParams.get('endVerse') || '1');
+    const verse = parseInt(searchParams.get('verse') || '0'); // Backward compat for single
 
-    console.log('Free Bible API Response:', {
-      status: response.status,
-      statusText: response.statusText,
-      headers: Object.fromEntries(response.headers.entries())
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('Free Bible API Error Response:', {
-        status: response.status,
-        statusText: response.statusText,
-        errorText: errorText
-      });
-
-      return NextResponse.json(
-        {
-          error: `Free Bible API error: ${response.status} ${response.statusText}`,
-          details: errorText,
-          originalBook: spanishBookName,
-          normalizedInput: normalizedInput,
-          resolvedBook: book,
-          chapter,
-          verse,
-          apiUrl
-        },
-        { status: response.status }
-      );
+    if (!book || !chapter) {
+      return NextResponse.json({ error: 'Missing book or chapter' }, { status: 400 });
     }
 
-    const data = await response.json();
-    
-    // The free API returns JSON with verse text
-    const result: BibleVerse = {
-      reference: `${book} ${chapter}:${verse}`,
-      text: data.text || data.cleanText || '',
-      translation: 'RVR60',
-      verse: verse,
-      chapter: chapter,
-      book: book
-    };
+    const normalizedBook = normalizeText(book).toLowerCase(); // e.g., "Génesis" -> "genesis"
+    const bibleApiBase = 'https://biblia-api.vercel.app/api/v1';
 
-    return NextResponse.json(result);
-  } catch (error) {
-    console.error('Bible API Fetch Error:', error);
-
-    // Handle different error types
-    if (error instanceof Error) {
-      if (error.name === 'AbortError') {
-        return NextResponse.json(
-          {
-            error: 'Request timeout. The Free Bible API is not responding.',
-            details: 'Please try again in a few moments or check your internet connection.'
-          },
-          { status: 408 }
+    let verses: any[] = [];
+    if (startVerse && endVerse && startVerse <= endVerse) {
+      // Range fetching - batch parallel single-verse calls
+      const versePromises = [];
+      for (let v = startVerse; v <= endVerse; v++) {
+        versePromises.push(
+          fetch(`${bibleApiBase}/${normalizedBook}/${chapter}/${v}`)
+            .then(res => res.ok ? res.json() : Promise.reject(new Error(`Verse ${v} failed`)))
+            .catch(err => ({ verse: v, text: `Error loading verse ${v}: ${err.message}`, error: true })) // Partial fallback
         );
       }
-      
-      if (error.name === 'TypeError') {
-        return NextResponse.json(
-          {
-            error: 'Network error. Unable to connect to Free Bible API.',
-            details: error.message
-          },
-          { status: 502 }
-        );
-      }
+      verses = await Promise.all(versePromises);
+    } else if (verse) {
+      // Existing single-verse logic (unchanged)
+      const res = await fetch(`${bibleApiBase}/${normalizedBook}/${chapter}/${verse}`);
+      if (!res.ok) throw new Error('API fetch failed');
+      const data = await res.json();
+      verses = [{ verse, text: data.text || 'Verse not found', reference: `${book} ${chapter}:${verse}` }];
     }
 
+    // Cache headers (existing pattern)
     return NextResponse.json(
-      {
-        error: 'Failed to fetch Bible content from Free Bible API',
-        details: error instanceof Error ? error.message : 'Unknown error',
-        originalBook: spanishBookName,
-        normalizedInput: normalizedInput,
-        resolvedBook: book,
-        chapter,
-        verse,
-        passage: passage
-      },
+      { verses, total: verses.length, reference: `${book} ${chapter}:${startVerse}-${endVerse || verse}` },
+      { 
+        status: 200,
+        headers: { 
+          'Cache-Control': 'public, max-age=86400', // 24h
+          'ETag': `range-${normalizedBook}-${chapter}-${startVerse}-${endVerse || verse}`
+        }
+      }
+    );
+  } catch (error) {
+    console.error('Bible API error:', error);
+    return NextResponse.json(
+      { error: 'Failed to fetch verses. Try again or check connection.', verses: [] },
       { status: 500 }
     );
   }

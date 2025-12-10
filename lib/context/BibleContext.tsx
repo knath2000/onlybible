@@ -1,7 +1,9 @@
 'use client';
 
-import React, { createContext, useContext, useReducer, ReactNode } from 'react';
+import React, { createContext, useContext, useReducer, ReactNode, useEffect } from 'react';
+import { useInfiniteQuery } from '@tanstack/react-query';
 import { bibleService, translationService } from '../api';
+import { BibleVerse } from '../services/BibleService';
 
 interface BibleState {
   currentBook: string;
@@ -18,6 +20,14 @@ interface BibleState {
   showTranslation: boolean;
   translationMode: 'verse' | 'word';
   verseList: { verse: number; text: string; translation?: string }[];
+  infiniteVerses: BibleVerse[];
+  hasNextPage: boolean;
+  isFetchingNextPage: boolean;
+  infiniteError: string | null;
+  settings: {
+    chunkSize: number;
+    autoLoadNextChapter: boolean;
+  };
 }
 
 interface BibleAction {
@@ -36,6 +46,8 @@ interface BibleContextType {
   setVerse: (verse: number) => void;
   toggleTranslation: () => void;
   setTranslationMode: (mode: 'verse' | 'word') => void;
+  loadNextVerses: () => void;
+  loadNextChapter: () => void;
 }
 
 const initialState: BibleState = {
@@ -52,7 +64,15 @@ const initialState: BibleState = {
   verses: [],
   showTranslation: false,
   translationMode: 'verse',
-  verseList: []
+  verseList: [],
+  infiniteVerses: [],
+  hasNextPage: true,
+  isFetchingNextPage: false,
+  infiniteError: null,
+  settings: {
+    chunkSize: 20,
+    autoLoadNextChapter: true,
+  }
 };
 
 const BibleContext = createContext<BibleContextType | undefined>(undefined);
@@ -98,6 +118,16 @@ const bibleReducer = (state: BibleState, action: BibleAction): BibleState => {
       const translatedText = verse === state.currentVerse ? translation : state.translatedText;
       return { ...state, verseList: updatedList, translatedText };
     }
+    case 'SET_INFINITE_VERSES':
+      return { ...state, infiniteVerses: action.payload };
+    case 'SET_HAS_MORE':
+      return { ...state, hasNextPage: action.payload };
+    case 'SET_INFINITE_LOADING':
+      return { ...state, isFetchingNextPage: action.payload };
+    case 'SET_INFINITE_ERROR':
+      return { ...state, infiniteError: action.payload };
+    case 'UPDATE_SETTINGS':
+      return { ...state, settings: { ...state.settings, ...action.payload } };
     default:
       return state;
   }
@@ -105,6 +135,92 @@ const bibleReducer = (state: BibleState, action: BibleAction): BibleState => {
 
 export const BibleProvider = ({ children }: { children: ReactNode }) => {
   const [state, dispatch] = useReducer(bibleReducer, initialState);
+
+  const chunkSize = state.settings.chunkSize;
+
+  // 1. Setup Infinite Query
+  const {
+    data: infiniteData,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+    error: queryError
+  } = useInfiniteQuery({
+    queryKey: ['infinite-verses', state.currentBook, state.currentChapter],
+    queryFn: async ({ pageParam = 1 }) => {
+      // Start index is 1-based. Page 1: 1-20, Page 2: 21-40
+      const start = (pageParam - 1) * chunkSize + 1;
+      const end = pageParam * chunkSize;
+      
+      // Fetch range
+      const verses = await bibleService.fetchVerseRange(
+        state.currentBook, 
+        state.currentChapter, 
+        start, 
+        end
+      );
+      
+      // Background prefetch English translations & alignments
+      // We don't await this to keep UI fast, relying on internal cache of TranslationService
+      verses.forEach(v => {
+        translationService.fetchEnglishVerse(v.book, v.chapter, v.verse).catch(console.warn);
+      });
+
+      return verses;
+    },
+    initialPageParam: 1,
+    getNextPageParam: (lastPage, allPages) => {
+      // If we got fewer verses than requested, we're likely at the end
+      if (lastPage.length < chunkSize) return undefined;
+      return allPages.length + 1;
+    },
+    enabled: !!state.currentBook && !!state.currentChapter, // Only run when book/chapter selected
+    staleTime: 24 * 60 * 60 * 1000, // 24h
+  });
+
+  // 2. Sync Query State to Reducer
+  // This ensures components consuming 'state' see the infinite list
+  useEffect(() => {
+    if (infiniteData) {
+      const allVerses = infiniteData.pages.flatMap(page => page);
+      dispatch({ type: 'SET_INFINITE_VERSES', payload: allVerses });
+    }
+  }, [infiniteData]);
+
+  useEffect(() => {
+    dispatch({ type: 'SET_HAS_MORE', payload: hasNextPage });
+  }, [hasNextPage]);
+
+  useEffect(() => {
+    dispatch({ type: 'SET_INFINITE_LOADING', payload: isFetchingNextPage });
+  }, [isFetchingNextPage]);
+
+  useEffect(() => {
+    if (queryError) {
+      dispatch({ 
+        type: 'SET_INFINITE_ERROR', 
+        payload: queryError instanceof Error ? queryError.message : 'Error loading verses' 
+      });
+    }
+  }, [queryError]);
+
+  // Reset infinite verses on book or chapter change
+  useEffect(() => {
+    dispatch({ type: 'SET_INFINITE_VERSES', payload: [] });
+  }, [state.currentBook, state.currentChapter]);
+
+  // 3. Expose Load Methods
+  const loadNextVerses = () => {
+    if (hasNextPage && !isFetchingNextPage) {
+      fetchNextPage();
+    }
+  };
+
+  const loadNextChapter = () => {
+    if (state.settings.autoLoadNextChapter) {
+      dispatch({ type: 'SET_CHAPTER', payload: state.currentChapter + 1 });
+    }
+  };
 
   const fetchVerse = async (book: string, chapter: number, verse: number) => {
     try {
@@ -293,7 +409,9 @@ export const BibleProvider = ({ children }: { children: ReactNode }) => {
         setChapter,
         setVerse,
         toggleTranslation,
-        setTranslationMode
+        setTranslationMode,
+        loadNextVerses,
+        loadNextChapter
       }}
     >
       {children}

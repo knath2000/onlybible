@@ -11,6 +11,7 @@ A modern Next.js web application for reading the Bible in Spanish (Reina-Valera 
 - **Responsive Design**: Works on mobile, tablet, and desktop
 - **Performance Optimized**: Built-in caching for fast loading
 - **Easy Navigation**: Quick chapter and verse selection
+- **Infinite Scrolling**: Seamless verse loading as you scroll, with chapter transitions and prefetching.
 
 ## 📁 Project Structure
 
@@ -47,6 +48,10 @@ A modern Next.js web application for reading the Bible in Spanish (Reina-Valera 
 4. **Read in Spanish**: The verse appears in Spanish
 5. **Translate Verse**: Click "Traducir Versículo" to see English translation
 6. **Translate Words**: Hover over individual Spanish words for instant translation
+
+## Infinite Scrolling
+
+The reader now supports infinite scrolling for verses, loading in chunks (configurable in settings: 10/20/50). Select book/chapter to start, scroll down to load more. Translations and alignments work per verse. Jump via search or URL anchors (#BookChapter:Verse).
 
 ## 🔧 Installation
 

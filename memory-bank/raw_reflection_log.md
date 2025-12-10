@@ -74,3 +74,31 @@ TaskRef: "API Integration and Vercel Deployment Preparation"
 - **User Experience**: Spanish error messages and step-by-step troubleshooting guidance
 - **Debugging Tools**: Built-in diagnostic functionality for immediate API testing and issue identification
 - **Production Readiness**: Comprehensive deployment guide ensuring smooth production deployment
+
+## Date: 2025-12-10
+TaskRef: "Infinite Scroll Implementation"
+
+### Learnings:
+- **Infinite Scroll Pattern**: Implemented seamless scrolling using TanStack Query (`useInfiniteQuery`) for efficient data fetching and caching.
+- **Intersection Observer**: Leveraged native `IntersectionObserver` for performant scroll detection and triggering next page loads.
+- **State Syncing**: Learned to sync TanStack Query state (fetched pages) with the global React Context reducer to maintain a single source of truth for UI components.
+- **Deep Linking**: Utilized URL hash anchors (`#Genesis1:1`) within infinite lists to enable direct navigation and bookmarking of specific items.
+- **API Batching**: Implemented parallel fetch logic (`Promise.all`) to batch single-verse API calls into ranges, overcoming endpoint limitations efficiently.
+- **Next.js Client/Server Split**: Reinforced the importance of separating client-side providers (`QueryClientProvider`) from server-side metadata logic in `layout.tsx` to avoid build errors.
+
+### Difficulties:
+- **Build Errors**: Encountered multiple build issues related to duplicate variable declarations (copy-paste errors) and correct import paths for shared utilities.
+- **Metadata Conflict**: Next.js App Router restriction prevents exporting metadata from `use client` components, requiring a refactor of `layout.tsx`.
+- **Search Integration**: Needed to ensure search results could scroll to verses that might be part of an infinite list; implemented smooth scrolling to anchors.
+
+### Successes:
+- **Seamless Reading Experience**: Transformed the reader from a static window to a fluid, book-like scroll.
+- **Robust Data Layer**: Extended API routes and services to handle range fetching with caching and error fallbacks.
+- **Polished UI**: Integrated "Loading..." skeletons, end-of-chapter markers, and a "Back to Top" button for better UX.
+- **Settings Integration**: Added user controls for chunk size and auto-loading next chapters.
+- **Successful Build**: Resolved all build errors, ensuring the app is production-ready.
+
+### Improvements Identified for Consolidation:
+- **Infinite Query Pattern**: Use `useInfiniteQuery` + `IntersectionObserver` as a standard for long lists.
+- **Client Wrapper Pattern**: Wrap client-only providers in a separate component to keep root layouts server-side compatible.
+- **Range API Pattern**: Extend single-resource APIs with batching logic on the server/proxy side to support range queries without changing the upstream provider.

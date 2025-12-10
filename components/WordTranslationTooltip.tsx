@@ -6,9 +6,11 @@ import { useBible } from '../lib/context/BibleContext';
 interface WordTranslationTooltipProps {
   word: string;
   children: React.ReactNode;
+  onHover?: () => void;
+  onHoverEnd?: () => void;
 }
 
-export const WordTranslationTooltip: React.FC<WordTranslationTooltipProps> = ({ word, children }) => {
+export const WordTranslationTooltip: React.FC<WordTranslationTooltipProps> = ({ word, children, onHover, onHoverEnd }) => {
   const { translateWord } = useBible();
   const [translation, setTranslation] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -19,6 +21,7 @@ export const WordTranslationTooltip: React.FC<WordTranslationTooltipProps> = ({ 
 
     setIsLoading(true);
     setShowTooltip(true);
+    onHover?.();
 
     try {
       const translated = await translateWord(word);
@@ -33,6 +36,7 @@ export const WordTranslationTooltip: React.FC<WordTranslationTooltipProps> = ({ 
 
   const handleMouseLeave = () => {
     setShowTooltip(false);
+    onHoverEnd?.();
     // Small delay to allow click interaction
     setTimeout(() => {
       setTranslation(null);

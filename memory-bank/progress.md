@@ -6,6 +6,7 @@
 - **Word Alignment Visualization** - Interactive Bezier curves connecting Spanish and English words on hover
 - **Stacked Verse Cards** - Vertical list of nearby verses with Spanish+English shown together
 - **Per-Verse Audio** - Each verse has its own play button with single-active playback control
+- **Autoplay Preference** - Settings toggle controls autoplay; plays sequential verses when enabled
 - **Expanded Dictionary** - 350+ biblical terms including Genesis-specific vocabulary
 - **API Fallback Translation** - MyMemory API integration for unknown words (5000 words/day free)
 - **Audio Playback** - Tap-to-listen via `/api/tts` (Azure Speech) with speaker button and playback states
@@ -21,13 +22,13 @@
 - **Unicode normalization** - Handles accented Spanish book names (Génesis, Éxodo, etc.)
 - **Vercel deployment ready** - Complete deployment configuration and guide
 - **Caching system** - 24-hour cache for verses, translations, and API word translations
+- **Infinite Scrolling**: Seamless verse loading on scroll, with configurable chunks and chapter transitions.
 
 ## What's Left to Build
 - **Alignment Accuracy Improvements** - Refine heuristic matching for better word-to-word connections
 - **Multiple Bible versions** - Support additional Spanish/English translations
 - **Offline support** - Cache verses for offline reading
 - **Performance monitoring** - Set up analytics and error tracking
-- **Verse range support** - Display multiple verses at once
 - **Search functionality** - Search for verses by keyword
 
 ## Current Status
@@ -102,4 +103,4 @@
 - **v1.9**: Audio TTS playback via Azure proxy and speaker UI
 
 ## Current Project State (Latest)
-The project features a polished "Luminous Verses" design with a robust reading experience. It fully supports Spanish (RVR60) and English (KJV) integration. The translation system is now context-aware with an expanded dictionary (350+ terms) and MyMemory API fallback for unknown words. The new word alignment feature provides visual connections between Spanish and English words using elegant Bezier curves. Multi-word book names are correctly parsed, and all build errors have been resolved. The application is production-ready with comprehensive error handling and caching strategies.
+The project features a polished "Luminous Verses" design with a robust reading experience. It fully supports Spanish (RVR60) and English (KJV) integration. The translation system is now context-aware with an expanded dictionary (350+ terms) and MyMemory API fallback for unknown words. The new word alignment feature provides visual connections between Spanish and English words using elegant Bezier curves. Multi-word book names are correctly parsed, and all build errors have been resolved. The application is production-ready with comprehensive error handling and caching strategies. Infinite scrolling is now implemented for seamless verse reading.

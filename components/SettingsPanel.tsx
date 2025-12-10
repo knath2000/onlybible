@@ -10,13 +10,15 @@ interface SettingsPanelProps {
 }
 
 export const SettingsPanel: React.FC<SettingsPanelProps> = ({ isOpen, onClose }) => {
-  const { state, setTranslationMode } = useBible();
+  const { state, dispatch } = useBible();
   const [localSettings, setLocalSettings] = useState({
     fontSize: 16,
     theme: 'dark',
     translationMode: state.translationMode,
     showWordTooltips: true,
-    autoTranslate: false
+    autoTranslate: false,
+    chunkSize: 20,
+    autoLoadNextChapter: true
   });
 
   // Load settings from localStorage
@@ -25,13 +27,14 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({ isOpen, onClose })
     if (savedSettings) {
       const parsed = JSON.parse(savedSettings);
       setLocalSettings(parsed);
+      dispatch({ type: 'UPDATE_SETTINGS', payload: parsed });
     }
   }, []);
 
-  // Save settings to localStorage
+  // Save settings to localStorage and dispatch to context
   useEffect(() => {
     localStorage.setItem('bible-app-settings', JSON.stringify(localSettings));
-    setTranslationMode(localSettings.translationMode);
+    dispatch({ type: 'UPDATE_SETTINGS', payload: localSettings });
   }, [localSettings]);
 
   const handleSettingChange = (key: string, value: any) => {
@@ -44,9 +47,12 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({ isOpen, onClose })
       theme: 'dark',
       translationMode: 'verse' as const,
       showWordTooltips: true,
-      autoTranslate: false
+      autoTranslate: false,
+      chunkSize: 20,
+      autoLoadNextChapter: true
     };
     setLocalSettings(defaultSettings);
+    dispatch({ type: 'UPDATE_SETTINGS', payload: defaultSettings });
     localStorage.setItem('bible-app-settings', JSON.stringify(defaultSettings));
   };
 
@@ -163,6 +169,31 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({ isOpen, onClose })
               type="checkbox"
               checked={localSettings.autoTranslate}
               onChange={(e) => handleSettingChange('autoTranslate', e.target.checked)}
+              className="w-4 h-4 text-blue-600 bg-white/20 border-white/30 rounded focus:ring-blue-500"
+            />
+          </div>
+
+          {/* Chunk Size */}
+          <div>
+            <label className="block text-sm text-white/80 mb-2">Tamaño de Bloque (Versículos)</label>
+            <select
+              value={localSettings.chunkSize}
+              onChange={(e) => handleSettingChange('chunkSize', parseInt(e.target.value))}
+              className="bg-white/20 border-white/30 rounded px-3 py-1 text-sm w-full"
+            >
+              <option value={10}>10</option>
+              <option value={20}>20</option>
+              <option value={50}>50</option>
+            </select>
+          </div>
+
+          {/* Auto Load Next Chapter */}
+          <div className="flex items-center justify-between">
+            <label className="text-sm text-white/80">Cargar Siguiente Capítulo Automáticamente</label>
+            <input
+              type="checkbox"
+              checked={localSettings.autoLoadNextChapter}
+              onChange={(e) => handleSettingChange('autoLoadNextChapter', e.target.checked)}
               className="w-4 h-4 text-blue-600 bg-white/20 border-white/30 rounded focus:ring-blue-500"
             />
           </div>

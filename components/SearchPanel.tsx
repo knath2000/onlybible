@@ -18,7 +18,7 @@ interface SearchResult {
 }
 
 export const SearchPanel: React.FC<SearchPanelProps> = ({ isOpen, onClose }) => {
-  const { state } = useBible();
+  const { state, setBook, setChapter, setVerse } = useBible();
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
   const [isSearching, setIsSearching] = useState(false);
@@ -88,6 +88,21 @@ export const SearchPanel: React.FC<SearchPanelProps> = ({ isOpen, onClose }) => 
   const clearHistory = () => {
     setSearchHistory([]);
     localStorage.removeItem('bible-search-history');
+  };
+
+  const handleResultClick = (result: SearchResult) => {
+    if (result.book !== state.currentBook || result.chapter !== state.currentChapter) {
+      setBook(result.book);
+      setChapter(result.chapter);
+    }
+    const anchorId = `#${result.book}${result.chapter}:${result.verse}`;
+    const element = document.getElementById(anchorId);
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    } else {
+      console.log('Verse not loaded yet');
+    }
+    onClose();
   };
 
   if (!isOpen) return null;
@@ -164,10 +179,7 @@ export const SearchPanel: React.FC<SearchPanelProps> = ({ isOpen, onClose }) => 
                   <div
                     key={index}
                     className="p-3 bg-white/5 rounded-lg border border-white/10 hover:bg-white/10 transition-colors cursor-pointer"
-                    onClick={() => {
-                      // This would navigate to the verse in a real implementation
-                      console.log('Navigate to:', result.reference);
-                    }}
+                    onClick={() => handleResultClick(result)}
                   >
                     <div className="flex items-center justify-between mb-2">
                       <span className="text-blue-300 font-medium">{result.reference}</span>

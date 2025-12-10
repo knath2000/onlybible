@@ -19,6 +19,7 @@ export interface BibleChapter {
 
 export class BibleService {
   private cache: CacheService;
+  private apiUrl = 'http://localhost:3000/api/bible'; // Proxy
   private useMockData: boolean = false; // Set to false to use ONLY Biblia.com API
 
   constructor(cache: CacheService) {
@@ -209,6 +210,42 @@ export class BibleService {
     };
     
     return verseCounts[book]?.[chapter] || 30;
+  }
+
+  async fetchVerseRange(book: string, chapter: number, startVerse: number, endVerse: number): Promise<BibleVerse[]> {
+    const cacheKey = `verse-range-${book.toLowerCase()}-${chapter}-${startVerse}-${endVerse}`;
+    const cached = this.cache.getCachedData(cacheKey);
+    if (cached) return cached as BibleVerse[];
+
+    try {
+      const url = `${this.apiUrl}?book=${encodeURIComponent(book)}&chapter=${chapter}&startVerse=${startVerse}&endVerse=${endVerse}`;
+      const response = await fetch(url);
+      if (!response.ok) throw new Error(`Range fetch failed: ${response.status}`);
+
+      const data = await response.json();
+      const verses: BibleVerse[] = data.verses.map((v: any, i: number) => ({
+        book,
+        chapter,
+        verse: startVerse + i,
+        text: v.text || 'Verse not available',
+        reference: data.reference,
+        translation: 'RVR60'
+      }));
+
+      // Cache for 24h
+      this.cache.setCachedData(cacheKey, verses, 86400);
+      return verses;
+    } catch (error) {
+      console.error('Verse range error:', error);
+      // Fallback: Fetch singles sequentially if batch fails (for robustness)
+      const fallbackPromises = [];
+      for (let v = startVerse; v <= endVerse; v++) {
+        fallbackPromises.push(this.fetchVerse(book, chapter, v).catch(() => ({ book, chapter, verse: v, text: 'Loading...', reference: '' } as BibleVerse)));
+      }
+      const fallbackVerses = await Promise.all(fallbackPromises);
+      this.cache.setCachedData(cacheKey, fallbackVerses, 3600); // Shorter cache on fallback
+      return fallbackVerses;
+    }
   }
 
   // Method to switch between mock and real API

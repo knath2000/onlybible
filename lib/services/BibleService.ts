@@ -33,26 +33,30 @@ export class BibleService {
     if (cached) return cached;
 
     try {
-      // Use ONLY Free RVR60 API (no key required)
-      const passage = `${book}+${chapter}:${verse}`;
-      const response = await fetch(`/api/bible?passage=${encodeURIComponent(passage)}`);
-      
+      // Call our proxy with explicit book/chapter/verse to avoid "passage" mismatch
+      const url = `${this.apiUrl}?book=${encodeURIComponent(book)}&chapter=${chapter}&verse=${verse}`;
+      const response = await fetch(url);
       const data = await response.json();
-      
-      // If API route returns error, throw error
+
       if (data.error) {
         throw new Error(data.error);
       }
-      
+
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
-      const result = {
+      const verseData = data.verses?.[0];
+
+      if (!verseData) {
+        throw new Error('No verse data returned from API');
+      }
+
+      const result: BibleVerse = {
         reference: `${book} ${chapter}:${verse}`,
-        text: data.text || 'Versículo no encontrado',
-        translation: data.translation || 'RVR60',
-        verse: verse,
+        text: verseData.text || verseData.content || 'Versículo no encontrado',
+        translation: verseData.translation || data.translation || 'RVR60',
+        verse: verseData.verse ?? verse,
         chapter: chapter,
         book: book
       };
@@ -81,39 +85,36 @@ export class BibleService {
     if (cached) return cached;
 
     try {
-      // For Free RVR60 API, fetch the first verse as a sample
-      // In a real implementation, you might want to fetch multiple verses
-      // or use a different API that supports chapter fetching
-      const passage = `${book}+${chapter}:1`;
-      const response = await fetch(`/api/bible?passage=${encodeURIComponent(passage)}`);
-      
+      // Fetch a sample (first verse) using the same structured endpoint
+      const url = `${this.apiUrl}?book=${encodeURIComponent(book)}&chapter=${chapter}&verse=1`;
+      const response = await fetch(url);
       const data = await response.json();
-      
-      // If API route returns error, throw error
+
       if (data.error) {
         throw new Error(data.error);
       }
-      
+
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
-      // Create a single verse result for the chapter
+      const verseData = data.verses?.[0];
+
       const verses = [{
         reference: `${book} ${chapter}:1`,
-        text: data.text || 'Versículo no encontrado',
-        translation: data.translation || 'RVR60',
+        text: verseData?.text || verseData?.content || 'Versículo no encontrado',
+        translation: verseData?.translation || data.translation || 'RVR60',
         verse: 1,
         chapter: chapter,
         book: book
       }];
 
-      const result = {
+      const result: BibleChapter = {
         reference: `${book} ${chapter}`,
         verses: verses,
         chapter: chapter,
         book: book,
-        translation: data.translation || 'RVR60'
+        translation: verseData?.translation || data.translation || 'RVR60'
       };
 
       this.cache.setCachedData(cacheKey, result, 86400);

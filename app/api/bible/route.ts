@@ -50,22 +50,23 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       verses = [{ verse, text: data.text || 'Verse not found', reference: `${book} ${chapter}:${verse}` }];
     }
 
-    // Cache headers (existing pattern)
+    const corsHeaders = {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+      'Cache-Control': 'public, max-age=86400', // 24h
+      'ETag': `range-${normalizedBook}-${chapter}-${startVerse}-${endVerse || verse}`,
+    };
+
     return NextResponse.json(
       { verses, total: verses.length, reference: `${book} ${chapter}:${startVerse}-${endVerse || verse}` },
-      { 
-        status: 200,
-        headers: { 
-          'Cache-Control': 'public, max-age=86400', // 24h
-          'ETag': `range-${normalizedBook}-${chapter}-${startVerse}-${endVerse || verse}`
-        }
-      }
+      { status: 200, headers: corsHeaders }
     );
   } catch (error) {
     console.error('Bible API error:', error);
     return NextResponse.json(
       { error: 'Failed to fetch verses. Try again or check connection.', verses: [] },
-      { status: 500 }
+      { status: 500, headers: { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Methods': 'GET, OPTIONS', 'Access-Control-Allow-Headers': 'Content-Type, Authorization' } }
     );
   }
 }
@@ -180,7 +181,22 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         error: 'Invalid request body or API error',
         details: error instanceof Error ? error.message : 'Unknown error'
       },
-      { status: 400 }
+      { status: 400, headers: { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Methods': 'GET, POST, OPTIONS', 'Access-Control-Allow-Headers': 'Content-Type, Authorization' } }
     );
   }
+}
+
+// CORS preflight
+export async function OPTIONS(): Promise<NextResponse> {
+  return NextResponse.json(
+    {},
+    {
+      status: 200,
+      headers: {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+      },
+    }
+  );
 }

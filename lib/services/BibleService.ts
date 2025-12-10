@@ -19,7 +19,8 @@ export interface BibleChapter {
 
 export class BibleService {
   private cache: CacheService;
-  private apiUrl = 'http://localhost:3000/api/bible'; // Proxy
+  // Use relative path so production and preview resolve to the current origin (avoids mixed-content/CORS)
+  private apiUrl = '/api/bible';
   private useMockData: boolean = false; // Set to false to use ONLY Biblia.com API
 
   constructor(cache: CacheService) {

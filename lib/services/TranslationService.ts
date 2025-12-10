@@ -420,7 +420,8 @@ export class TranslationService {
 
   private bibleService: BibleService; // Inject for English
   private cache: CacheService;
-  private englishApiUrl = 'http://localhost:3000/api/bible/english';
+  // Use relative path to avoid mixed-content in production
+  private englishApiUrl = '/api/bible/english';
   private normalizedDictionary: Record<string, string | string[]> = {};
 
   constructor(bibleService: BibleService, cacheService: CacheService) {

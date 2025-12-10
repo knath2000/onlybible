@@ -72,18 +72,37 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       verses = [{ verse: parseInt(verse), text: data.text, reference: `${englishBook} ${chapter}:${verse}` }];
     }
 
+    const corsHeaders = {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+      'Cache-Control': 'public, max-age=86400',
+    };
+
     return NextResponse.json(
       { verses, total: verses.length, reference: `${englishBook} ${chapter}:${startVerse || verse}-${endVerse || verse}` },
-      { 
-        status: 200,
-        headers: { 'Cache-Control': 'public, max-age=86400' } // 24h
-      }
+      { status: 200, headers: corsHeaders }
     );
   } catch (error) {
     console.error('English Bible API error:', error);
     return NextResponse.json(
       { error: 'Failed to fetch English translation. Using dictionary fallback.', verses: [] },
-      { status: 500 }
+      { status: 500, headers: { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Methods': 'GET, OPTIONS', 'Access-Control-Allow-Headers': 'Content-Type, Authorization' } }
     );
   }
+}
+
+// CORS preflight
+export async function OPTIONS(): Promise<NextResponse> {
+  return NextResponse.json(
+    {},
+    {
+      status: 200,
+      headers: {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'GET, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+      },
+    }
+  );
 }

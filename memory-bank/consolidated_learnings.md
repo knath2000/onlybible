@@ -37,6 +37,11 @@ class BibleService {
 3. **Platform Deployment**: Vercel automatic CORS handling
 4. **Backend Service**: Dedicated API server
 
+### Mixed-Content & CORS Prevention (Dec 2025)
+- Use **relative `/api/...` URLs** in browser fetches so deployments inherit the correct origin and avoid HTTPS/HTTP mixed-content blocks.
+- Add **CORS headers** and an **`OPTIONS` handler** in App Router routes (`/api/bible`, `/api/bible/english`) to unblock cross-origin dev/testing while keeping upstream calls HTTPS.
+- Align client parsing to the proxy **`verses[]` response shape** (read `text`/`content` fields) instead of relying on legacy `passage` payloads to prevent "Versículo no encontrado" regressions.
+
 ## Error Handling Patterns
 
 ### Automatic Fallback System

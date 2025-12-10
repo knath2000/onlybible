@@ -23,6 +23,8 @@
 - **Vercel deployment ready** - Complete deployment configuration and guide
 - **Caching system** - 24-hour cache for verses, translations, and API word translations
 - **Infinite Scrolling**: Seamless verse loading on scroll, with configurable chunks and chapter transitions.
+- **CORS/Mixed-Content Safe**: Services use relative `/api/...` bases; proxy routes set CORS headers and `OPTIONS`, resolving production mixed-content blocks.
+- **Verse Fetch Shape Fixed**: `BibleService` now consumes `book/chapter/verse` queries and parses `verses[]` payloads, eliminating "Versículo no encontrado" regression.
 
 ## What's Left to Build
 - **Alignment Accuracy Improvements** - Refine heuristic matching for better word-to-word connections
@@ -40,6 +42,7 @@
 - **Translation feature**: ✅ Complete and working
 - **Testing phase**: ✅ Enhanced with built-in diagnostics
 - **Deployment phase**: ✅ Ready for production
+- **Production fetch**: ✅ Mixed-content/CORS resolved with relative paths and proxy headers
 
 ## Known Issues
 - **Word Dictionary Coverage**: Dictionary expanded to ~350 words with API fallback; covers most common biblical terms

@@ -37,6 +37,11 @@
 - ✅ **Client/Server Split**: Refactored `layout.tsx` to separate client-side providers from server-side metadata.
 - ✅ **TypeScript Fixes**: Corrected type errors in API routes (null checks) and component props.
 
+### Production Stability & CORS (Latest Session)
+- ✅ **Relative API Calls**: Switched Bible/Translation services to relative `/api/...` URLs to avoid mixed-content in production.
+- ✅ **CORS Headers**: Added `Access-Control-Allow-*` and `OPTIONS` handlers to `/api/bible` and `/api/bible/english`.
+- ✅ **Verse Fetch Shape**: Updated `BibleService.fetchVerse/fetchChapter` to use `book/chapter/verse` query params and parse `verses[]` payload to prevent "Versículo no encontrado" regressions.
+
 ## Next Steps
 1. **Performance Monitoring**: Observe infinite scroll performance on low-end devices; consider virtualization if list grows too large.
 2. **Offline Support**: Explore service workers to cache infinite query data for offline reading.
@@ -54,4 +59,4 @@
 - **Verse Navigation**: ✅ Seamless intra-chapter scrolling; inter-chapter auto-loading supported.
 - **Deep Linking**: ✅ Anchors working for bookmarking/search jumps.
 - **Build**: ✅ Passing production build (`npm run build`).
-- **Deployment**: ✅ Ready for Vercel production deployment.
+- **Deployment**: ✅ Ready for Vercel production deployment; mixed-content/CORS issues addressed with relative paths and API route headers.

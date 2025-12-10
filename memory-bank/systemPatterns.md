@@ -23,6 +23,8 @@
 12. **Pre-Normalized Dictionary**: Normalize dictionary keys at construction time for accent handling
 13. **Cloud TTS Proxy**: `/api/tts` Azure Speech route returning MP3 for verse audio playback
 14. **Infinite Scrolling**: `useInfiniteQuery` + Intersection Observer for seamless verse loading
+15. **Relative Origin Fetching**: Services call relative `/api/...` paths to avoid mixed-content in production.
+16. **CORS-Friendly Proxies**: API routes export `OPTIONS` with `Access-Control-Allow-*` headers to support cross-origin dev/testing.
 
 ## Design Patterns
 

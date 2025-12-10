@@ -255,6 +255,19 @@ export const SpanishBibleReader: React.FC = () => {
       const res = await fetch(`/api/tts?text=${encodeURIComponent(audioText)}`);
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
+
+        // If TTS is not configured on the server, surface a clear,
+        // user-friendly message instead of a generic failure.
+        if (data && data.configured === false) {
+          console.warn('TTS is not configured on this deployment:', data);
+          setError({
+            error: 'Audio no disponible',
+            details:
+              'La función de audio no está configurada en este entorno. Pide al administrador que configure TTS_API_KEY y TTS_REGION.',
+          });
+          return;
+        }
+
         throw new Error(data.error || 'No se pudo generar audio');
       }
       const blob = await res.blob();

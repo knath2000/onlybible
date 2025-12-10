@@ -102,3 +102,20 @@ TaskRef: "Infinite Scroll Implementation"
 - **Infinite Query Pattern**: Use `useInfiniteQuery` + `IntersectionObserver` as a standard for long lists.
 - **Client Wrapper Pattern**: Wrap client-only providers in a separate component to keep root layouts server-side compatible.
 - **Range API Pattern**: Extend single-resource APIs with batching logic on the server/proxy side to support range queries without changing the upstream provider.
+
+## Date: 2025-12-10
+TaskRef: "Mixed-content/CORS fixes & verse fetch regression"
+
+### Learnings:
+- **Relative Origins Prevent Mixed Content**: Switching services to relative `/api/...` paths avoids HTTPS→HTTP blocks in production.
+- **App Router CORS**: Adding explicit `Access-Control-Allow-*` headers plus `OPTIONS` handlers in Next.js API routes unblocks cross-origin dev/testing.
+- **Response Shape Alignment**: Client must parse `verses[]` from proxy responses (not `passage` strings) to avoid empty verse text.
+
+### Difficulties:
+- **Production-only Failure**: Issue reproduced only on deployed Vercel (mixed content), not locally.
+- **Silent Regression**: Legacy passage parsing caused "Versículo no encontrado" until the response shape was aligned.
+
+### Successes:
+- **Fixed Live Errors**: Deployed frontend now loads verses without mixed-content or CORS errors.
+- **Service Hardening**: `BibleService.fetchVerse/fetchChapter` updated to structured queries and robust parsing of `text/content`.
+- **Reusable Pattern**: Documented relative-path + CORS-header approach for future proxies.

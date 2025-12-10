@@ -35,6 +35,10 @@
 | `/api/translate/word` | Word translation fallback | api.mymemory.translated.net |
 | `/api/tts` | Verse audio playback (MP3) | Azure Speech (configurable) |
 
+**CORS & Mixed-Content Notes (Dec 2025):**
+- Client fetches use **relative `/api/...`** URLs to inherit the current origin and avoid HTTPS→HTTP blocks.
+- API routes include **`Access-Control-Allow-*` headers and `OPTIONS` handlers** to support cross-origin dev/testing without affecting production.
+
 ## Development Setup
 - Node.js 20+
 - npm/yarn/pnpm

@@ -18,7 +18,7 @@ interface SearchResult {
 }
 
 export const SearchPanel: React.FC<SearchPanelProps> = ({ isOpen, onClose }) => {
-  const { state, setBook, setChapter, setVerse } = useBible();
+  const { state, setBook, setChapter, setVerse, loadNextVerses } = useBible();
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
   const [isSearching, setIsSearching] = useState(false);
@@ -90,18 +90,46 @@ export const SearchPanel: React.FC<SearchPanelProps> = ({ isOpen, onClose }) => 
     localStorage.removeItem('bible-search-history');
   };
 
+  const scrollToResultWithLoading = (result: SearchResult) => {
+    const anchorId = `${result.book}${result.chapter}:${result.verse}`;
+    const maxAttempts = 20;
+    const delayMs = 200;
+
+    const attemptScroll = (attempt: number) => {
+      const element = document.getElementById(anchorId);
+      if (element) {
+        element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        return;
+      }
+
+      if (attempt >= maxAttempts) {
+        console.warn('Verse anchor not found after attempts:', anchorId);
+        return;
+      }
+
+      // Ask the infinite query to load more verses if possible.
+      // Internally this is gated by hasNextPage/isFetchingNextPage.
+      loadNextVerses();
+      window.setTimeout(() => attemptScroll(attempt + 1), delayMs);
+    };
+
+    // Small delay to allow book/chapter change to trigger a fresh query
+    window.setTimeout(() => attemptScroll(0), 200);
+  };
+
   const handleResultClick = (result: SearchResult) => {
+    // Update navigation state first so the infinite list knows which
+    // book/chapter/verse we care about.
     if (result.book !== state.currentBook || result.chapter !== state.currentChapter) {
       setBook(result.book);
       setChapter(result.chapter);
     }
-    const anchorId = `#${result.book}${result.chapter}:${result.verse}`;
-    const element = document.getElementById(anchorId);
-    if (element) {
-      element.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    } else {
-      console.log('Verse not loaded yet');
-    }
+    setVerse(result.verse);
+
+    // Smooth-scroll to the corresponding infinite verse anchor,
+    // loading additional chunks if needed until it appears.
+    scrollToResultWithLoading(result);
+
     onClose();
   };
 

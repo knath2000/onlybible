@@ -16,17 +16,31 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
   }
 
   if (text.length > 500) {
-    return NextResponse.json({ error: 'Text too long (limit 500 chars)' }, { status: 400 });
+    return NextResponse.json(
+      { error: 'Text too long (limit 500 chars)' },
+      { status: 400 }
+    );
   }
 
   if (TTS_PROVIDER !== 'azure') {
-    return NextResponse.json({ error: 'Unsupported TTS provider', provider: TTS_PROVIDER }, { status: 500 });
+    return NextResponse.json(
+      {
+        error: 'Unsupported TTS provider',
+        provider: TTS_PROVIDER,
+        configured: false,
+      },
+      { status: 500 }
+    );
   }
 
   if (!TTS_API_KEY || !TTS_REGION) {
     return NextResponse.json(
-      { error: 'TTS is not configured. Set TTS_API_KEY and TTS_REGION.' },
-      { status: 500 }
+      {
+        error: 'TTS is not configured. Set TTS_API_KEY and TTS_REGION.',
+        configured: false,
+        hint: 'Configure TTS_API_KEY and TTS_REGION environment variables on the server.',
+      },
+      { status: 503 }
     );
   }
 

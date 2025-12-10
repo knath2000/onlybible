@@ -132,18 +132,24 @@ export const VerseItem: React.FC<VerseItemProps> = ({ verse }) => {
   };
 
   return (
-    <div className="relative group" ref={containerRef}>
-      <div className="flex justify-between items-start mb-2">
-        <span className="text-sm text-gray-400 font-medium">
+    <div
+      className="relative group border-l border-white/5 pl-4"
+      ref={containerRef}
+    >
+      {/* Luminous vertical accent */}
+      <div className="pointer-events-none absolute left-0 top-4 h-10 w-px bg-gradient-to-b from-transparent via-[#f5a623] to-transparent opacity-60 group-hover:opacity-100 transition-opacity" />
+
+      <div className="flex justify-between items-start mb-3">
+        <span className="verse-pill">
           {verse.chapter}:{verse.verse}
         </span>
-        <GlassButton onClick={handleTTS} disabled={isPlaying} className="text-xs">
+        <GlassButton onClick={handleTTS} disabled={isPlaying} className="text-xs" variant="ghost" size="sm">
           {isPlaying ? '🔊' : '🔈'}
         </GlassButton>
       </div>
 
       {/* Spanish Text with Tooltips */}
-      <p className="text-lg leading-relaxed text-gray-100 mb-2">
+      <p className="verse-text-main mb-2 bg-gradient-to-r from-white/5 via-transparent to-transparent rounded-lg px-3 py-1.5">
         {spanishWords.map((word, index) => (
           <React.Fragment key={index}>
             <WordTranslationTooltip
@@ -155,7 +161,7 @@ export const VerseItem: React.FC<VerseItemProps> = ({ verse }) => {
                 ref={(el) => {
                   spanishWordRefs.current[index] = el;
                 }}
-                className="cursor-help underline underline-offset-2 decoration-gold-400"
+                className="cursor-help verse-word"
               >
                 {word}
               </span>
@@ -167,7 +173,7 @@ export const VerseItem: React.FC<VerseItemProps> = ({ verse }) => {
 
       {/* English verse (KJV) when global translation toggle is on */}
       {state.showTranslation && englishText && (
-        <p className="text-sm text-gray-300 leading-relaxed mt-1">
+        <p className="verse-text-english mt-2 border-t border-white/10 pt-2">
           {englishWords.map((word, index) => (
             <React.Fragment key={index}>
               <span

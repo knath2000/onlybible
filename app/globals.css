@@ -191,6 +191,47 @@ html {
   border-radius: 1rem;
 }
 
+/* Verse typography enhancements */
+.verse-text-main {
+  font-family: var(--font-playfair), 'Georgia', serif;
+  font-style: italic;
+  letter-spacing: 0.02em;
+  text-shadow: 0 0 18px rgba(0, 0, 0, 0.7);
+}
+
+.verse-text-english {
+  font-family: var(--font-serif);
+  letter-spacing: 0.015em;
+  text-shadow: 0 0 14px rgba(0, 0, 0, 0.6);
+}
+
+.verse-word {
+  position: relative;
+  text-decoration-line: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.22em;
+  text-decoration-color: rgba(245, 166, 35, 0.45);
+  transition: color 0.18s ease-out, text-shadow 0.18s ease-out, background 0.18s ease-out;
+}
+
+.verse-word:hover {
+  text-decoration-color: rgba(245, 166, 35, 0.95);
+  text-shadow: 0 0 18px rgba(245, 166, 35, 0.6);
+  background: radial-gradient(circle at 50% 120%, rgba(245, 166, 35, 0.18), transparent 60%);
+  border-radius: 0.35rem;
+}
+
+/* Verse number pill */
+.verse-pill {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.02));
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  padding: 0.15rem 0.6rem;
+  font-size: 0.7rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
 /* Select dropdown styling for dark theme */
 select option {
   background-color: #1a1a2e;

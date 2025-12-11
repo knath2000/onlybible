@@ -644,9 +644,9 @@ export const SpanishBibleReader: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-violet-900 text-white p-4 md:p-8">
-      {/* Header/Navigation remains fixed or at top */}
-      <div className="sticky top-0 z-10 bg-gray-900/80 backdrop-blur-md pb-4">
-        <div className="max-w-4xl mx-auto flex flex-col md:flex-row gap-4 items-center justify-between mb-6">
+      {/* Header/Navigation */}
+      <div className="sticky top-0 z-20 topbar-shell pb-4">
+        <div className="max-w-5xl mx-auto topbar-inner flex flex-col md:flex-row gap-4 items-center justify-between">
           {/* Book Selector */}
           <GlassInput className="w-full md:w-64">
             <select value={state.currentBook} onChange={handleBookChange} className="bg-transparent border-none text-white w-full">
@@ -657,7 +657,7 @@ export const SpanishBibleReader: React.FC = () => {
           </GlassInput>
 
           {/* Chapter Selector */}
-          <GlassInput className="w-full md:w-32">
+          <GlassInput className="w-full md:w-28">
             <select value={state.currentChapter} onChange={handleChapterChange} className="bg-transparent border-none text-white w-full">
               {state.chapters.map(ch => (
                 <option key={ch} value={ch}>{ch}</option>
@@ -666,7 +666,7 @@ export const SpanishBibleReader: React.FC = () => {
           </GlassInput>
 
           {/* Verse Selector (optional for infinite, can hide or use for jump) */}
-          <GlassInput className="w-full md:w-32">
+          <GlassInput className="w-full md:w-28">
             <select value={state.currentVerse} onChange={handleVerseChange} className="bg-transparent border-none text-white w-full">
               {state.verses.map(v => (
                 <option key={v} value={v}>{v}</option>
@@ -675,12 +675,12 @@ export const SpanishBibleReader: React.FC = () => {
           </GlassInput>
 
           {/* Translation Toggle */}
-          <GlassButton onClick={translateVerse} disabled={state.isTranslating}>
+          <GlassButton onClick={translateVerse} disabled={state.isTranslating} variant="gold">
             {state.isTranslating ? 'Traduciendo...' : 'Traducir Versículo'}
           </GlassButton>
 
           {/* Test Connection Button */}
-          <GlassButton onClick={testConnection} disabled={isTestingConnection}>
+          <GlassButton onClick={testConnection} disabled={isTestingConnection} variant="outline">
             {isTestingConnection ? 'Probando...' : 'Probar Conexión'}
           </GlassButton>
 

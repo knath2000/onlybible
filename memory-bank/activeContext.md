@@ -42,6 +42,15 @@
 - ✅ **CORS Headers**: Added `Access-Control-Allow-*` and `OPTIONS` handlers to `/api/bible` and `/api/bible/english`.
 - ✅ **Verse Fetch Shape**: Updated `BibleService.fetchVerse/fetchChapter` to use `book/chapter/verse` query params and parse `verses[]` payload to prevent "Versículo no encontrado" regressions.
 
+### UX & Styling (This Session)
+- ✅ **Verse Item Styling**: Spanish verses now use serif italic with gold underline accents; English translations render beneath when toggled; hover glow fits the glass theme.
+- ✅ **Alignment Overlay Hookup**: VerseItem pulls cached KJV text and computes alignment on hover, showing Bezier overlays on word hover.
+- ✅ **Top Bar Glow**: Reader header restyled with gold/purple glass gradient, expanded width, and refined button variants for hierarchy.
+
+### Infinite Scroll Robustness (This Session)
+- ✅ **Range Clamping**: `fetchVerseRange` clamps to the real verse count and returns empty when past chapter end—no more “verse not found” tails.
+- ✅ **Search Jump Reliability**: Search panel scrolls to anchors without leading `#`, auto-loads more pages until the target appears, then centers smoothly.
+
 ## Next Steps
 1. **Performance Monitoring**: Observe infinite scroll performance on low-end devices; consider virtualization if list grows too large.
 2. **Offline Support**: Explore service workers to cache infinite query data for offline reading.

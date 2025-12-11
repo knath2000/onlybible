@@ -25,6 +25,12 @@
 - **Infinite Scrolling**: Seamless verse loading on scroll, with configurable chunks and chapter transitions.
 - **CORS/Mixed-Content Safe**: Services use relative `/api/...` bases; proxy routes set CORS headers and `OPTIONS`, resolving production mixed-content blocks.
 - **Verse Fetch Shape Fixed**: `BibleService` now consumes `book/chapter/verse` queries and parses `verses[]` payloads, eliminating "Versículo no encontrado" regression.
+- **Styled Reader UI**: Verse cards use luminous serif styling with gold underlines; top bar has gradient glass treatment; per-word hover glow matches theme.
+- **Alignment on Hover**: VerseItem fetches cached English KJV and draws alignment overlays when hovering Spanish words.
+- **Search Jump & Infinite End**: Search scroll now waits/loads until anchors exist; range fetch clamps to chapter length, avoiding phantom "verse not found" cards at chapter end.
+- **TTS Guard Rails**: `/api/tts` returns clear configuration errors; reader surfaces user-friendly message when TTS env vars are missing.
+- **Header Polish**: Sticky top bar widened to `max-w-5xl`, with gold/purple glass gradients and clearer button hierarchy (gold primary, outline secondary).
+- **Verse Styling Pass**: Spanish text uses serif italics with gold accents; English translation renders beneath on toggle; hover glow aligned to glass aesthetic.
 
 ## What's Left to Build
 - **Alignment Accuracy Improvements** - Refine heuristic matching for better word-to-word connections
@@ -50,6 +56,7 @@
 - **Limited Range Display**: Shows a small window of verses, not full chapters yet
 - **No Offline Support**: Requires internet connection for all operations
 - **TTS Requires Keys**: Audio depends on valid cloud TTS credentials; no offline TTS fallback yet
+- **Search Still Mocked**: Full-text search results are mocked; needs real API integration
 
 ## Evolution of Project Decisions
 1. **Initial Requirements**: Basic Spanish Bible reading with translation

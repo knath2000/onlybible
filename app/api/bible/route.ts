@@ -11,57 +11,197 @@ interface BibleVerse {
 }
 
 /**
- * GET /api/bible?passage=Juan+3:16
- * Fetches Bible content from Free RVR60 API (biblia-api.vercel.app) with enhanced error handling
+ * GET /api/bible
+ * Fetches Bible content from Free RVR60 API (biblia-api.vercel.app)
+ * Supports three modes:
+ * - Meta mode: ?meta=1&book=X&chapter=Y (returns chapterVerseCount)
+ * - Range mode: ?book=X&chapter=Y&startVerse=A&endVerse=B (returns verse range)
+ * - Single mode: ?book=X&chapter=Y&verse=V (returns single verse)
  */
 export async function GET(request: NextRequest): Promise<NextResponse> {
   try {
     const { searchParams } = new URL(request.url);
-    const book = searchParams.get('book') || 'genesis'; // Default for testing
-    const chapter = parseInt(searchParams.get('chapter') || '1');
-    const startVerse = parseInt(searchParams.get('startVerse') || '1');
-    const endVerse = parseInt(searchParams.get('endVerse') || '1');
-    const verse = parseInt(searchParams.get('verse') || '0'); // Backward compat for single
+
+    // Required parameters
+    const book = searchParams.get('book');
+    const chapter = searchParams.get('chapter');
 
     if (!book || !chapter) {
-      return NextResponse.json({ error: 'Missing book or chapter' }, { status: 400 });
+      return NextResponse.json({
+        error: 'Missing required parameters: book and chapter are required',
+        example: '/api/bible?book=Génesis&chapter=1&verse=1'
+      }, { status: 400 });
     }
 
-    const normalizedBook = normalizeText(book).toLowerCase(); // e.g., "Génesis" -> "genesis"
+    const normalizedBook = normalizeText(book).toLowerCase();
+    const chapterNum = parseInt(chapter);
     const bibleApiBase = 'https://biblia-api.vercel.app/api/v1';
 
-    let verses: any[] = [];
-    if (startVerse && endVerse && startVerse <= endVerse) {
-      // Range fetching - batch parallel single-verse calls
-      const versePromises = [];
-      for (let v = startVerse; v <= endVerse; v++) {
-        versePromises.push(
-          fetch(`${bibleApiBase}/${normalizedBook}/${chapter}/${v}`)
-            .then(res => res.ok ? res.json() : Promise.reject(new Error(`Verse ${v} failed`)))
-            .catch(err => ({ verse: v, text: `Error loading verse ${v}: ${err.message}`, error: true })) // Partial fallback
-        );
+    // Check if this is a meta request
+    if (searchParams.get('meta') === '1') {
+      // Meta mode: return chapter metadata
+      const chapterUrl = `${bibleApiBase}/${normalizedBook}/${chapterNum}`;
+      const chapterRes = await fetch(chapterUrl);
+
+      if (!chapterRes.ok) {
+        return NextResponse.json({
+          error: 'Failed to fetch chapter metadata',
+          status: chapterRes.status
+        }, { status: 404 });
       }
-      verses = await Promise.all(versePromises);
-    } else if (verse) {
-      // Existing single-verse logic (unchanged)
-      const res = await fetch(`${bibleApiBase}/${normalizedBook}/${chapter}/${verse}`);
-      if (!res.ok) throw new Error('API fetch failed');
-      const data = await res.json();
-      verses = [{ verse, text: data.text || 'Verse not found', reference: `${book} ${chapter}:${verse}` }];
+
+      const chapterData = await chapterRes.json();
+
+      return NextResponse.json({
+        book: book,
+        chapter: chapterNum,
+        chapterVerseCount: chapterData.verses
+      }, {
+        status: 200,
+        headers: {
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Methods': 'GET, OPTIONS',
+          'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+          'Cache-Control': 'public, max-age=86400'
+        }
+      });
     }
 
-    const corsHeaders = {
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'GET, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-      'Cache-Control': 'public, max-age=86400', // 24h
-      'ETag': `range-${normalizedBook}-${chapter}-${startVerse}-${endVerse || verse}`,
-    };
+    // Check for range mode (both startVerse and endVerse present)
+    const hasStart = searchParams.has('startVerse');
+    const hasEnd = searchParams.has('endVerse');
+    const hasVerse = searchParams.has('verse');
 
-    return NextResponse.json(
-      { verses, total: verses.length, reference: `${book} ${chapter}:${startVerse}-${endVerse || verse}` },
-      { status: 200, headers: corsHeaders }
-    );
+    if (hasStart && hasEnd) {
+      // Range mode: fetch whole chapter and slice
+      const startVerse = parseInt(searchParams.get('startVerse')!);
+      const endVerse = parseInt(searchParams.get('endVerse')!);
+
+      if (!isFinite(startVerse) || !isFinite(endVerse) || startVerse > endVerse) {
+        return NextResponse.json({
+          error: 'Invalid verse range',
+          details: 'startVerse must be <= endVerse and both must be valid numbers'
+        }, { status: 400 });
+      }
+
+      // Fetch whole chapter
+      const chapterUrl = `${bibleApiBase}/${normalizedBook}/${chapterNum}`;
+      const chapterRes = await fetch(chapterUrl);
+
+      if (!chapterRes.ok) {
+        return NextResponse.json({
+          error: 'Chapter not found',
+          status: chapterRes.status
+        }, { status: 404 });
+      }
+
+      const chapterData = await chapterRes.json();
+
+      // Clamp range to available verses
+      const safeStart = Math.max(1, startVerse);
+      const safeEnd = Math.min(endVerse, chapterData.verses);
+
+      // If requested range is completely beyond available verses, return empty
+      if (safeEnd < safeStart) {
+        return NextResponse.json({
+          verses: [],
+          total: 0,
+          reference: `${book} ${chapterNum}:${startVerse}-${endVerse}`,
+          chapterVerseCount: chapterData.verses
+        }, {
+          status: 200,
+          headers: {
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Methods': 'GET, OPTIONS',
+            'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+            'Cache-Control': 'public, max-age=86400'
+          }
+        });
+      }
+
+      // Slice the verses array (text array is 0-based, verses are 1-based)
+      const slicedVerses = chapterData.text.slice(safeStart - 1, safeEnd).map((text: string, i: number) => ({
+        verse: safeStart + i,
+        text: text || 'Verse not available'
+      }));
+
+      return NextResponse.json({
+        verses: slicedVerses,
+        total: slicedVerses.length,
+        reference: `${book} ${chapterNum}:${safeStart}-${safeEnd}`,
+        chapterVerseCount: chapterData.verses
+      }, {
+        status: 200,
+        headers: {
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Methods': 'GET, OPTIONS',
+          'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+          'Cache-Control': 'public, max-age=86400'
+        }
+      });
+
+    } else if (hasVerse) {
+      // Single verse mode: efficient direct fetch
+      const verseNum = parseInt(searchParams.get('verse')!);
+
+      if (!isFinite(verseNum)) {
+        return NextResponse.json({
+          error: 'Invalid verse number',
+          details: 'verse must be a valid number'
+        }, { status: 400 });
+      }
+
+      const verseUrl = `${bibleApiBase}/${normalizedBook}/${chapterNum}/${verseNum}`;
+      const verseRes = await fetch(verseUrl);
+
+      if (!verseRes.ok) {
+        return NextResponse.json({
+          error: 'Verse not found',
+          verses: [],
+          reference: `${book} ${chapterNum}:${verseNum}`
+        }, {
+          status: 404,
+          headers: {
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Methods': 'GET, OPTIONS',
+            'Access-Control-Allow-Headers': 'Content-Type, Authorization'
+          }
+        });
+      }
+
+      const verseData = await verseRes.json();
+
+      const verses = [{
+        verse: verseNum,
+        text: verseData.text || 'Verse not found'
+      }];
+
+      return NextResponse.json({
+        verses,
+        total: verses.length,
+        reference: `${book} ${chapterNum}:${verseNum}`
+      }, {
+        status: 200,
+        headers: {
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Methods': 'GET, OPTIONS',
+          'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+          'Cache-Control': 'public, max-age=86400'
+        }
+      });
+
+    } else {
+      // No valid mode specified
+      return NextResponse.json({
+        error: 'Invalid request mode',
+        details: 'Specify either: meta=1, or startVerse&endVerse, or verse',
+        examples: [
+          '/api/bible?book=Génesis&chapter=1&meta=1',
+          '/api/bible?book=Génesis&chapter=1&startVerse=1&endVerse=5',
+          '/api/bible?book=Génesis&chapter=1&verse=1'
+        ]
+      }, { status: 400 });
+    }
   } catch (error) {
     console.error('Bible API error:', error);
     return NextResponse.json(

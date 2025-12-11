@@ -178,40 +178,34 @@ export class BibleService {
   }
 
   async getVersesInChapter(book: string, chapter: number): Promise<number> {
-    // Return verse counts for key chapters (sample data)
-    // In a real implementation, this would come from the API
-    const verseCounts: Record<string, Record<number, number>> = {
-      'Génesis': {
-        1: 31, 2: 25, 3: 24, 4: 26, 5: 32, 6: 22, 7: 24, 8: 22, 9: 29, 10: 32,
-        11: 32, 12: 20, 13: 18, 14: 24, 15: 21, 16: 16, 17: 27, 18: 33, 19: 38, 20: 18,
-        21: 34, 22: 24, 23: 20, 24: 67, 25: 34, 26: 35, 27: 46, 28: 22, 29: 35, 30: 43,
-        31: 55, 32: 32, 33: 20, 34: 31, 35: 29, 36: 43, 37: 36, 38: 30, 39: 23, 40: 23,
-        41: 57, 42: 38, 43: 34, 44: 34, 45: 28, 46: 34, 47: 31, 48: 22, 49: 33, 50: 26
-      },
-      'Juan': {
-        1: 51, 2: 25, 3: 36, 4: 54, 5: 47, 6: 71, 7: 53, 8: 59, 9: 41, 10: 42,
-        11: 57, 12: 50, 13: 38, 14: 31, 15: 27, 16: 33, 17: 26, 18: 40, 19: 42, 20: 31, 21: 25
-      },
-      'Salmos': {
-        1: 6, 2: 12, 3: 8, 4: 8, 5: 12, 6: 10, 7: 17, 8: 9, 9: 20, 10: 18,
-        11: 7, 12: 8, 13: 6, 14: 7, 15: 5, 16: 11, 17: 15, 18: 50, 19: 14, 20: 9,
-        21: 13, 22: 31, 23: 6, 24: 10, 25: 22, 26: 12, 27: 14, 28: 9, 29: 11, 30: 12,
-        31: 24, 32: 11, 33: 22, 34: 23, 35: 28, 36: 12, 37: 40, 38: 22, 39: 13, 40: 17,
-        41: 13, 42: 11, 43: 5, 44: 26, 45: 24, 46: 11, 47: 9, 48: 14, 49: 9, 50: 23,
-        51: 19, 52: 9, 53: 6, 54: 7, 55: 23, 56: 12, 57: 11, 58: 11, 59: 17, 60: 12,
-        61: 8, 62: 12, 63: 11, 64: 10, 65: 13, 66: 20, 67: 35, 68: 35, 69: 36, 70: 5,
-        71: 24, 72: 20, 73: 28, 74: 23, 75: 10, 76: 12, 77: 28, 78: 72, 79: 13, 80: 19,
-        81: 16, 82: 8, 83: 18, 84: 12, 85: 13, 86: 17, 87: 7, 88: 18, 89: 52, 90: 17,
-        91: 16, 92: 15, 93: 5, 94: 23, 95: 11, 96: 13, 97: 12, 98: 9, 99: 9, 100: 5,
-        101: 8, 102: 28, 103: 22, 104: 35, 105: 45, 106: 48, 107: 43, 108: 13, 109: 31, 110: 5,
-        111: 10, 112: 10, 113: 9, 114: 8, 115: 18, 116: 19, 117: 2, 118: 176, 119: 176, 120: 5,
-        121: 8, 122: 5, 123: 4, 124: 8, 125: 5, 126: 5, 127: 5, 128: 6, 129: 5, 130: 8,
-        131: 8, 132: 10, 133: 3, 134: 3, 135: 21, 136: 24, 137: 9, 138: 8, 139: 24, 140: 13,
-        141: 10, 142: 7, 143: 12, 144: 15, 145: 7, 146: 10, 147: 11, 148: 14, 149: 9, 150: 6
+    const cacheKey = `chapter-verses-${book}-${chapter}`;
+    const cached = this.cache.getCachedData(cacheKey);
+    if (cached) return cached;
+
+    try {
+      // Use the new meta endpoint to get authoritative verse count
+      const response = await fetch(`/api/bible?book=${encodeURIComponent(book)}&chapter=${chapter}&meta=1`);
+
+      if (!response.ok) {
+        console.warn(`Failed to fetch chapter metadata for ${book} ${chapter}, falling back to estimate`);
+        return 30; // Fallback to a reasonable default
       }
-    };
-    
-    return verseCounts[book]?.[chapter] || 30;
+
+      const data = await response.json();
+      const verseCount = data.chapterVerseCount;
+
+      if (typeof verseCount !== 'number' || verseCount <= 0) {
+        console.warn(`Invalid verse count for ${book} ${chapter}: ${verseCount}`);
+        return 30; // Fallback to a reasonable default
+      }
+
+      // Cache for 24 hours (same as other verse data)
+      this.cache.setCachedData(cacheKey, verseCount, 86400);
+      return verseCount;
+    } catch (error) {
+      console.error('Error fetching chapter verse count:', error);
+      return 30; // Fallback to a reasonable default
+    }
   }
 
   async fetchVerseRange(
@@ -220,35 +214,22 @@ export class BibleService {
     startVerse: number,
     endVerse: number
   ): Promise<BibleVerse[]> {
-    // Clamp the requested range to the actual number of verses
-    // in this chapter so we don't keep asking the API for verses
-    // that don't exist (which produced the "Error loading verse X"
-    // cards past the end of the chapter).
-    const totalVerses = await this.getVersesInChapter(book, chapter);
-    const safeStart = Math.max(1, startVerse);
-    const safeEnd = Math.min(endVerse, totalVerses);
-
-    // If the requested window is entirely past the end of the chapter,
-    // return an empty array so the infinite query knows there is no
-    // more content.
-    if (safeEnd < safeStart) {
-      return [];
-    }
-
-    const cacheKey = `verse-range-${book.toLowerCase()}-${chapter}-${safeStart}-${safeEnd}`;
+    const cacheKey = `verse-range-${book.toLowerCase()}-${chapter}-${startVerse}-${endVerse}`;
     const cached = this.cache.getCachedData(cacheKey);
     if (cached) return cached as BibleVerse[];
 
     try {
-      const url = `${this.apiUrl}?book=${encodeURIComponent(book)}&chapter=${chapter}&startVerse=${safeStart}&endVerse=${safeEnd}`;
+      const url = `${this.apiUrl}?book=${encodeURIComponent(book)}&chapter=${chapter}&startVerse=${startVerse}&endVerse=${endVerse}`;
       const response = await fetch(url);
       if (!response.ok) throw new Error(`Range fetch failed: ${response.status}`);
 
       const data = await response.json();
-      const verses: BibleVerse[] = data.verses.map((v: any, i: number) => ({
+
+      // Server now handles clamping and returns proper verse objects
+      const verses: BibleVerse[] = data.verses.map((v: any) => ({
         book,
         chapter,
-        verse: safeStart + i,
+        verse: v.verse, // Use verse number from server response
         text: v.text || 'Verse not available',
         reference: data.reference,
         translation: 'RVR60'
@@ -260,8 +241,9 @@ export class BibleService {
     } catch (error) {
       console.error('Verse range error:', error);
       // Fallback: Fetch singles sequentially if batch fails (for robustness)
+      // Note: This fallback doesn't clamp, but that's ok since it's rare
       const fallbackPromises = [];
-      for (let v = safeStart; v <= safeEnd; v++) {
+      for (let v = startVerse; v <= endVerse; v++) {
         fallbackPromises.push(
           this.fetchVerse(book, chapter, v).catch(
             () =>

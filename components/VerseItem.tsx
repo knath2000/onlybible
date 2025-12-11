@@ -152,20 +152,20 @@ export const VerseItem: React.FC<VerseItemProps> = ({ verse }) => {
       <p className="verse-text-main mb-2 bg-gradient-to-r from-white/5 via-transparent to-transparent rounded-lg px-3 py-1.5">
         {spanishWords.map((word, index) => (
           <React.Fragment key={index}>
-            <WordTranslationTooltip
-              word={word}
-              onHover={() => setHoveredWord(index)}
-              onHoverEnd={() => setHoveredWord(null)}
-            >
+          <WordTranslationTooltip
+            word={word}
+            onHover={() => setHoveredWord(index)}
+            onHoverEnd={() => setHoveredWord(null)}
+          >
               <span
                 ref={(el) => {
                   spanishWordRefs.current[index] = el;
                 }}
                 className="cursor-help verse-word"
               >
-                {word}
-              </span>
-            </WordTranslationTooltip>
+              {word}
+            </span>
+          </WordTranslationTooltip>
             {' '}
           </React.Fragment>
         ))}

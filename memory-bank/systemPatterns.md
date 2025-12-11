@@ -25,6 +25,10 @@
 14. **Infinite Scrolling**: `useInfiniteQuery` + Intersection Observer for seamless verse loading
 15. **Relative Origin Fetching**: Services call relative `/api/...` paths to avoid mixed-content in production.
 16. **CORS-Friendly Proxies**: API routes export `OPTIONS` with `Access-Control-Allow-*` headers to support cross-origin dev/testing.
+17. **Range Clamping for Infinite Lists**: Before fetching a verse range, clamp `start/end` to the chapter’s true verse count; if the window is past the end, return `[]` so infinite queries stop cleanly (prevents phantom “verse not found” cards).
+18. **Search-to-Anchor Reliability**: Scroll to anchor IDs without `#`, and keep requesting more pages until the target anchor exists, then center it smoothly.
+19. **TTS Guard Rails**: `/api/tts` surfaces `configured: false` with hints when env vars are missing; UI shows friendly “audio not available” instead of generic errors.
+20. **Themed Headers & Cards**: Top bar and verse cards use glassmorphic gold/purple gradients, serif italics, and underline glows to align with the Luminous Verses aesthetic.
 
 ## Design Patterns
 

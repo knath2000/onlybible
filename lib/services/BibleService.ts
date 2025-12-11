@@ -214,13 +214,33 @@ export class BibleService {
     return verseCounts[book]?.[chapter] || 30;
   }
 
-  async fetchVerseRange(book: string, chapter: number, startVerse: number, endVerse: number): Promise<BibleVerse[]> {
-    const cacheKey = `verse-range-${book.toLowerCase()}-${chapter}-${startVerse}-${endVerse}`;
+  async fetchVerseRange(
+    book: string,
+    chapter: number,
+    startVerse: number,
+    endVerse: number
+  ): Promise<BibleVerse[]> {
+    // Clamp the requested range to the actual number of verses
+    // in this chapter so we don't keep asking the API for verses
+    // that don't exist (which produced the "Error loading verse X"
+    // cards past the end of the chapter).
+    const totalVerses = await this.getVersesInChapter(book, chapter);
+    const safeStart = Math.max(1, startVerse);
+    const safeEnd = Math.min(endVerse, totalVerses);
+
+    // If the requested window is entirely past the end of the chapter,
+    // return an empty array so the infinite query knows there is no
+    // more content.
+    if (safeEnd < safeStart) {
+      return [];
+    }
+
+    const cacheKey = `verse-range-${book.toLowerCase()}-${chapter}-${safeStart}-${safeEnd}`;
     const cached = this.cache.getCachedData(cacheKey);
     if (cached) return cached as BibleVerse[];
 
     try {
-      const url = `${this.apiUrl}?book=${encodeURIComponent(book)}&chapter=${chapter}&startVerse=${startVerse}&endVerse=${endVerse}`;
+      const url = `${this.apiUrl}?book=${encodeURIComponent(book)}&chapter=${chapter}&startVerse=${safeStart}&endVerse=${safeEnd}`;
       const response = await fetch(url);
       if (!response.ok) throw new Error(`Range fetch failed: ${response.status}`);
 
@@ -228,7 +248,7 @@ export class BibleService {
       const verses: BibleVerse[] = data.verses.map((v: any, i: number) => ({
         book,
         chapter,
-        verse: startVerse + i,
+        verse: safeStart + i,
         text: v.text || 'Verse not available',
         reference: data.reference,
         translation: 'RVR60'
@@ -241,8 +261,19 @@ export class BibleService {
       console.error('Verse range error:', error);
       // Fallback: Fetch singles sequentially if batch fails (for robustness)
       const fallbackPromises = [];
-      for (let v = startVerse; v <= endVerse; v++) {
-        fallbackPromises.push(this.fetchVerse(book, chapter, v).catch(() => ({ book, chapter, verse: v, text: 'Loading...', reference: '' } as BibleVerse)));
+      for (let v = safeStart; v <= safeEnd; v++) {
+        fallbackPromises.push(
+          this.fetchVerse(book, chapter, v).catch(
+            () =>
+              ({
+                book,
+                chapter,
+                verse: v,
+                text: 'Loading...',
+                reference: ''
+              } as BibleVerse)
+          )
+        );
       }
       const fallbackVerses = await Promise.all(fallbackPromises);
       this.cache.setCachedData(cacheKey, fallbackVerses, 3600); // Shorter cache on fallback

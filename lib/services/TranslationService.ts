@@ -463,18 +463,37 @@ export class TranslationService {
       const response = await fetch(
         `/api/bible/english?book=${encodeURIComponent(spanishBook)}&chapter=${chapter}&verse=${verse}`
       );
-      
+
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.error || `HTTP error: ${response.status}`);
       }
 
-      const data: EnglishVerseResult = await response.json();
-      
+      const data = await response.json();
+
+      // Extract the verse from the proxy response
+      if (!data.verses || !Array.isArray(data.verses) || data.verses.length === 0) {
+        throw new Error('No verse data returned from English Bible API');
+      }
+
+      const verseData = data.verses[0];
+      if (!verseData || !verseData.text) {
+        throw new Error('Invalid verse data structure');
+      }
+
+      const result: EnglishVerseResult = {
+        reference: data.reference || `${spanishBook} ${chapter}:${verse}`,
+        text: verseData.text,
+        translation: 'KJV',
+        verse: verseData.verse || verse,
+        chapter: chapter,
+        book: spanishBook
+      };
+
       // Cache for 24 hours (same as Spanish verses)
-      this.cache.setCachedData(cacheKey, data, 86400);
-      
-      return data;
+      this.cache.setCachedData(cacheKey, result, 86400);
+
+      return result;
     } catch (error) {
       console.error('Error fetching English verse:', error);
       throw error;
@@ -773,14 +792,33 @@ export class TranslationService {
       if (!response.ok) throw new Error(`English range failed: ${response.status}`);
 
       const data = await response.json();
-      const verses: BibleVerse[] = data.verses.map((v: any, i: number) => ({
+
+      if (!data.verses || !Array.isArray(data.verses)) {
+        throw new Error('Invalid response structure from English Bible API');
+      }
+
+      const verses: BibleVerse[] = data.verses.map((v: any) => ({
         book,
         chapter,
-        verse: startVerse + i,
+        verse: v.verse || startVerse + data.verses.indexOf(v), // Use verse from response, fallback to index
         text: v.text || 'Translation not available',
         reference: data.reference,
         translation: 'KJV'
       }));
+
+      // Prime per-verse cache to avoid individual fetches later
+      verses.forEach(verse => {
+        const perVerseCacheKey = `english-verse-${book}-${chapter}-${verse.verse}`;
+        const perVerseResult: EnglishVerseResult = {
+          reference: `${book} ${chapter}:${verse.verse}`,
+          text: verse.text,
+          translation: 'KJV',
+          verse: verse.verse,
+          chapter: chapter,
+          book: book
+        };
+        this.cache.setCachedData(perVerseCacheKey, perVerseResult, 86400);
+      });
 
       this.cache.setCachedData(cacheKey, verses, 86400); // 24h
       return verses;

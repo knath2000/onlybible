@@ -160,11 +160,16 @@ export const BibleProvider = ({ children }: { children: ReactNode }) => {
         end
       );
       
-      // Background prefetch English translations & alignments
+      // Background prefetch English translations for the entire chunk
       // We don't await this to keep UI fast, relying on internal cache of TranslationService
-      verses.forEach(v => {
-        translationService.fetchEnglishVerse(v.book, v.chapter, v.verse).catch(console.warn);
-      });
+      if (verses.length > 0) {
+        translationService.fetchEnglishRange(
+          state.currentBook,
+          state.currentChapter,
+          start,
+          end
+        ).catch(console.warn);
+      }
 
       return verses;
     },
@@ -276,33 +281,35 @@ export const BibleProvider = ({ children }: { children: ReactNode }) => {
       return;
     }
 
-    // If translations are already available for the visible window, just show them
-    const missing = state.verseList.filter((v) => !v.translation);
-
     try {
       dispatch({ type: 'SET_TRANSLATING', payload: true });
       dispatch({ type: 'CLEAR_ERROR' });
 
-      if (missing.length > 0) {
-        await Promise.all(
-          missing.map((v) =>
-            translationService.fetchEnglishVerse(state.currentBook, state.currentChapter, v.verse)
-              .then((res) => {
-                dispatch({
-                  type: 'SET_VERSE_TRANSLATION',
-                  payload: { verse: v.verse, translation: res.text }
-                });
-              })
-          )
+      // Get the range of currently loaded infinite verses
+      if (state.infiniteVerses.length > 0) {
+        const minVerse = Math.min(...state.infiniteVerses.map(v => v.verse));
+        const maxVerse = Math.max(...state.infiniteVerses.map(v => v.verse));
+
+        // Fetch English translations for the entire loaded range
+        await translationService.fetchEnglishRange(
+          state.currentBook,
+          state.currentChapter,
+          minVerse,
+          maxVerse
         );
       }
 
       // Ensure current verse translatedText is populated for alignment/hover
-      const currentTranslation =
-        state.verseList.find((v) => v.verse === state.currentVerse)?.translation ||
-        state.translatedText;
-      if (currentTranslation) {
-        dispatch({ type: 'SET_TRANSLATED_TEXT', payload: currentTranslation });
+      // (This will be fetched from the cache we just populated)
+      try {
+        const currentEnglish = await translationService.fetchEnglishVerse(
+          state.currentBook,
+          state.currentChapter,
+          state.currentVerse
+        );
+        dispatch({ type: 'SET_TRANSLATED_TEXT', payload: currentEnglish.text });
+      } catch (error) {
+        console.warn('Could not fetch current verse English for alignment:', error);
       }
 
       dispatch({ type: 'TOGGLE_TRANSLATION' }); // Show the translations

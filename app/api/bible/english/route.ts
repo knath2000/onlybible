@@ -61,15 +61,40 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       const res = await fetch(rangeUrl);
       if (!res.ok) throw new Error('English API fetch failed');
       const data = await res.json();
-      // Split response (API returns multi-verse as text; parse by numbers if needed)
-      // For simplicity, assume API handles; fallback to loop if not
-      verses = data.text ? data.text.split('\n').map((t: string, i: number) => ({ verse: parseInt(startVerse) + i, text: t.trim() })) : [];
+
+      // Use the upstream verses array instead of splitting text by newlines
+      if (data.verses && Array.isArray(data.verses)) {
+        verses = data.verses.map((v: any) => ({
+          verse: v.verse || parseInt(startVerse) + verses.length,
+          text: v.text || ''
+        }));
+      } else {
+        // Fallback to text splitting if verses array not available
+        verses = data.text ? data.text.split('\n').map((t: string, i: number) => ({
+          verse: parseInt(startVerse) + i,
+          text: t.trim()
+        })) : [];
+      }
     } else if (verse) {
-      // Single-verse (unchanged)
-      const res = await fetch(`${bibleApiUrl}:${verse}?translation=kjv`);
+      // Single verse - use upstream verses array
+      const verseUrl = `${bibleApiUrl}:${verse}?translation=kjv`;
+      const res = await fetch(verseUrl);
       if (!res.ok) throw new Error('English API fetch failed');
       const data = await res.json();
-      verses = [{ verse: parseInt(verse), text: data.text, reference: `${englishBook} ${chapter}:${verse}` }];
+
+      // Use the upstream verses array
+      if (data.verses && Array.isArray(data.verses) && data.verses.length > 0) {
+        verses = [{
+          verse: data.verses[0].verse || parseInt(verse),
+          text: data.verses[0].text || data.text || ''
+        }];
+      } else {
+        // Fallback to direct text field
+        verses = [{
+          verse: parseInt(verse),
+          text: data.text || ''
+        }];
+      }
     }
 
     const corsHeaders = {

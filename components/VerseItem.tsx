@@ -74,12 +74,24 @@ export const VerseItem: React.FC<VerseItemProps> = ({ verse }) => {
 
         setEnglishText(english.text);
 
-        const map = translationService.computeAlignment(verse.text, english.text);
-        if (!cancelled) {
-          setAlignmentMap(map);
+        // Only compute alignment if both texts are valid strings
+        if (verse.text && english.text && typeof verse.text === 'string' && typeof english.text === 'string') {
+          const map = translationService.computeAlignment(verse.text, english.text);
+          if (!cancelled) {
+            setAlignmentMap(map);
+          }
+        } else {
+          // Clear alignment if texts are invalid
+          if (!cancelled) {
+            setAlignmentMap(new Map());
+          }
         }
       } catch (err) {
         console.error('Error loading English verse for alignment:', err);
+        // Clear alignment on error
+        if (!cancelled) {
+          setAlignmentMap(new Map());
+        }
       }
     };
 

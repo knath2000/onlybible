@@ -18,7 +18,8 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({ isOpen, onClose })
     showWordTooltips: true,
     autoTranslate: false,
     chunkSize: 20,
-    autoLoadNextChapter: true
+    autoLoadNextChapter: true,
+    reduceEffects: false
   });
 
   // Load settings from localStorage
@@ -35,6 +36,13 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({ isOpen, onClose })
   useEffect(() => {
     localStorage.setItem('bible-app-settings', JSON.stringify(localSettings));
     dispatch({ type: 'UPDATE_SETTINGS', payload: localSettings });
+
+    // Apply reduce effects setting
+    if (localSettings.reduceEffects) {
+      document.body.classList.add('reduced-effects');
+    } else {
+      document.body.classList.remove('reduced-effects');
+    }
   }, [localSettings]);
 
   const handleSettingChange = (key: string, value: any) => {
@@ -49,18 +57,26 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({ isOpen, onClose })
       showWordTooltips: true,
       autoTranslate: false,
       chunkSize: 20,
-      autoLoadNextChapter: true
+      autoLoadNextChapter: true,
+      reduceEffects: false
     };
     setLocalSettings(defaultSettings);
     dispatch({ type: 'UPDATE_SETTINGS', payload: defaultSettings });
     localStorage.setItem('bible-app-settings', JSON.stringify(defaultSettings));
+
+    // Apply reduce effects setting
+    if (defaultSettings.reduceEffects) {
+      document.body.classList.add('reduced-effects');
+    } else {
+      document.body.classList.remove('reduced-effects');
+    }
   };
 
   if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <GlassCard className="w-full max-w-md relative">
+      <GlassCard variant="liquid" elevation="mid" className="w-full max-w-md relative">
         <button
           onClick={onClose}
           className="absolute top-4 right-4 text-white/60 hover:text-white transition-colors"
@@ -195,6 +211,20 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({ isOpen, onClose })
               checked={localSettings.autoLoadNextChapter}
               onChange={(e) => handleSettingChange('autoLoadNextChapter', e.target.checked)}
               className="w-4 h-4 text-blue-600 bg-white/20 border-white/30 rounded focus:ring-blue-500"
+            />
+          </div>
+
+          {/* Reduce Effects */}
+          <div className="flex items-center justify-between">
+            <div>
+              <label className="text-sm text-white/80 block">Reducir Efectos Visuales</label>
+              <p className="text-xs text-white/60">Disminuye animaciones y efectos para mejor rendimiento</p>
+            </div>
+            <input
+              type="checkbox"
+              checked={localSettings.reduceEffects}
+              onChange={(e) => handleSettingChange('reduceEffects', e.target.checked)}
+              className="w-4 h-4 text-gold-600 bg-white/20 border-white/30 rounded focus:ring-gold-500"
             />
           </div>
 

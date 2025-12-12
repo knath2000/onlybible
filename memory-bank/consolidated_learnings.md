@@ -544,6 +544,49 @@ const translateVerse = async () => {
 - **Cache Priming**: Range fetch populates individual verse caches automatically.
 - **User Experience**: Translations appear instantly when scrolling with translation enabled.
 
+## Eliminating Phantom Verses at Chapter End (Latest Session)
+
+### Defense-in-Depth Chapter Boundary Enforcement
+**Pattern**: Enforce chapter boundaries at multiple layers to prevent “Error loading verse 32” cards:
+
+1. **Server**: validate upstream chapter shape before slicing (`verses` is a number, `text` is an array).
+2. **Client service**: sanitize range results (filter out-of-range verse numbers and known placeholder strings) before caching/returning.
+3. **Pagination**: stop infinite pagination based on `chapterVerseCount`, not `lastPage.length`.
+
+**Key Insights**:
+- **Never Trust Page Length**: `lastPage.length === chunkSize` is not a reliable end-of-data signal if placeholder items can exist.
+- **Authoritative Stop Condition**: Use chapter verse count (`chapterVerseCount`) to compute `nextStart` and return `undefined` when done.
+- **Safety Net Filtering**: Even with a correct backend, stale caches or unexpected payloads can leak invalid entries; filter them out client-side.
+
+### Cache Busting for Infinite Lists
+**Pattern**: Include `chunkSize` and a schema/version token in the infinite query key to prevent stale cached pages from resurfacing after a behavior change.
+
+**Implementation**:
+```typescript
+const queryKey = ['infinite-verses', book, chapter, chunkSize, 'v2'] as const;
+```
+
+### TanStack Query TypeScript: pageParam and InfiniteData
+**Pattern**: `pageParam` is `unknown` unless you specify generics; `data` is `InfiniteData<TPage>`, not `TPage`.
+
+**Implementation**:
+```typescript
+type Page = { verses: BibleVerse[]; chapterVerseCount: number };
+const queryKey = ['infinite-verses', book, chapter, chunkSize, 'v2'] as const;
+
+useInfiniteQuery<
+  Page,
+  Error,
+  InfiniteData<Page, number>,
+  typeof queryKey,
+  number
+>({ /* ... */ });
+```
+
+**Key Insights**:
+- Avoids compile errors like `pageParam is of type unknown` and `pages does not exist`.
+- Makes pagination logic type-safe and resilient to refactors.
+
 ### Infinite Scroll UI
 **Pattern**: Intersection Observer API for detecting scroll position and triggering data loads.
 

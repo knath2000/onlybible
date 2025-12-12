@@ -13,8 +13,10 @@
 ### Spanish Bible API
 - **Provider**: biblia-api.vercel.app
 - **Version**: RVR60 (Reina-Valera 1960)
-- **Endpoint**: `https://biblia-api.vercel.app/api/v1/{book}/{chapter}/{verse}`
-- **Format**: JSON with `text` field
+- **Endpoints**:
+  - `https://biblia-api.vercel.app/api/v1/{book}/{chapter}/{verse}` (single verse)
+  - `https://biblia-api.vercel.app/api/v1/{book}/{chapter}` (whole chapter; includes verse count + `text[]`)
+- **Format**: Chapter responses include `verses` (count) and `text[]` (verse strings); range is implemented by slicing `text[]` in our proxy.
 - **Rate Limit**: None
 - **API Key**: Not required
 
@@ -22,8 +24,8 @@
 - **Provider**: bible-api.com
 - **Version**: KJV (King James Version)
 - **Endpoint**: `https://bible-api.com/{book}+{chapter}:{verse}?translation=kjv`
-- **Format**: JSON with `text`, `reference`, `translation_name` fields
-- **Rate Limit**: None
+- **Format**: JSON includes `reference`, `verses[]` (per-verse objects), and `text` (combined passage); proxies should parse `verses[]` for correctness.
+- **Rate Limit**: 15 requests / 30 seconds (IP-based; per bible-api.com terms)
 - **API Key**: Not required
 
 ## API Routes
@@ -47,7 +49,7 @@
 - Tailwind CSS 4+
 
 ## Technical Constraints
-- Free Bible API limitations (verse-level only)
+- Upstream Spanish API has no native range endpoint; ranges are served by fetching a whole chapter and slicing.
 - Browser compatibility
 - Mobile performance
 - Offline capabilities (future)

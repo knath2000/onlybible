@@ -9,12 +9,47 @@
   --purple-mid: #1a1a2e;
   --purple-light: #252542;
   --purple-accent: #3d3d6b;
-  
-  /* Glass effects */
+
+  /* Aurora accents for liquid glass enhancement */
+  --aurora-magenta: #e91e63;
+  --aurora-magenta-light: #ff4081;
+  --aurora-magenta-dark: #c2185b;
+  --aurora-cyan: #00bcd4;
+  --aurora-cyan-light: #26c6da;
+  --aurora-cyan-dark: #0097a7;
+  --aurora-indigo: #3f51b5;
+  --aurora-indigo-light: #7986cb;
+  --aurora-indigo-dark: #303f9f;
+
+  /* Glass elevation tiers */
+  --glass-bg-low: rgba(37, 37, 66, 0.4);
+  --glass-bg-mid: rgba(37, 37, 66, 0.6);
+  --glass-bg-high: rgba(37, 37, 66, 0.8);
+  --glass-border-low: rgba(255, 255, 255, 0.08);
+  --glass-border-mid: rgba(255, 255, 255, 0.1);
+  --glass-border-high: rgba(255, 255, 255, 0.15);
+  --glass-shadow-low: 0 4px 16px 0 rgba(0, 0, 0, 0.2);
+  --glass-shadow-mid: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+  --glass-shadow-high: 0 16px 64px 0 rgba(0, 0, 0, 0.4);
+
+  /* Specular highlights for liquid glass */
+  --specular-highlight: rgba(255, 255, 255, 0.2);
+  --specular-rim: linear-gradient(135deg, rgba(255, 255, 255, 0.3) 0%, transparent 50%);
+
+  /* Effect controls */
+  --noise-opacity: 0.015;
+  --noise-opacity-reduced: 0.005;
+  --aurora-blur: 80px;
+
+  /* Focus rings for accessibility */
+  --focus-ring: 0 0 0 2px rgba(245, 166, 35, 0.5);
+  --focus-ring-inset: inset 0 0 0 2px rgba(245, 166, 35, 0.5);
+
+  /* Legacy glass effects (for backward compatibility) */
   --glass-bg: rgba(37, 37, 66, 0.6);
   --glass-border: rgba(255, 255, 255, 0.1);
   --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
-  
+
   /* Text colors */
   --text-primary: #ffffff;
   --text-secondary: rgba(255, 255, 255, 0.7);
@@ -258,4 +293,338 @@ html {
 select option {
   background-color: #1a1a2e;
   color: white;
+}
+
+/* Liquid glass utility classes */
+
+/* Aurora background layers */
+.aurora-bg {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  pointer-events: none;
+  z-index: -1;
+  background:
+    radial-gradient(circle at 20% 30%, rgba(233, 30, 99, 0.15) 0%, transparent 50%),
+    radial-gradient(circle at 80% 70%, rgba(0, 188, 212, 0.12) 0%, transparent 50%),
+    radial-gradient(circle at 60% 10%, rgba(63, 81, 181, 0.1) 0%, transparent 50%),
+    radial-gradient(circle at 40% 80%, rgba(245, 166, 35, 0.08) 0%, transparent 50%);
+  filter: blur(var(--aurora-blur));
+  animation: aurora-drift 20s ease-in-out infinite alternate;
+}
+
+@keyframes aurora-drift {
+  0% {
+    transform: translateX(-5%) translateY(-3%) scale(1);
+  }
+  100% {
+    transform: translateX(5%) translateY(3%) scale(1.05);
+  }
+}
+
+/* Reduced motion version */
+@media (prefers-reduced-motion: reduce) {
+  .aurora-bg {
+    animation: none;
+  }
+}
+
+.reduced-effects .aurora-bg {
+  animation: none;
+  opacity: 0.3;
+}
+
+/* Enhanced Frosted Glass Topbar (Josh Comeau pattern) */
+.reader-topbar {
+  position: relative;
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  background: rgba(37, 37, 66, 0.8);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  overflow: hidden;
+}
+
+.reader-topbar::before {
+  content: '';
+  position: absolute;
+  inset: -100px;
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  background: rgba(37, 37, 66, 0.6);
+  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  mask-composite: xor;
+  -webkit-mask-composite: xor;
+  pointer-events: none;
+}
+
+.reader-topbar::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 60px;
+  background: linear-gradient(
+    to bottom,
+    rgba(13, 13, 26, 0.8) 0%,
+    rgba(13, 13, 26, 0.4) 30%,
+    transparent 100%
+  );
+  pointer-events: none;
+}
+
+/* Scroll Progress Indicator */
+.scroll-progress {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg,
+    var(--gold) 0%,
+    var(--gold-light) 50%,
+    var(--gold) 100%
+  );
+  transform-origin: left;
+  transition: transform 0.1s ease-out;
+}
+
+/* Navigation Pills */
+.nav-pill {
+  position: relative;
+  background: rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 20px;
+  padding: 0.5rem 1rem;
+  color: white;
+  font-size: 0.875rem;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.nav-pill:hover {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.2);
+  transform: translateY(-1px);
+}
+
+.nav-pill:focus {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+.nav-pill select {
+  background: transparent;
+  border: none;
+  color: inherit;
+  font: inherit;
+  cursor: inherit;
+  width: 100%;
+  appearance: none;
+  padding: 0;
+  margin: 0;
+}
+
+.nav-pill select:focus {
+  outline: none;
+}
+
+/* Current Reading Display */
+.reading-title {
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-weight: 600;
+  font-size: 1.25rem;
+  color: var(--gold-light);
+  text-shadow: 0 2px 8px rgba(245, 166, 35, 0.3);
+  letter-spacing: -0.02em;
+}
+
+/* Gold glow shadow for current verse emphasis */
+.shadow-gold-glow {
+  box-shadow:
+    0 0 20px rgba(245, 166, 35, 0.3),
+    0 0 40px rgba(245, 166, 35, 0.2),
+    0 0 60px rgba(245, 166, 35, 0.1);
+}
+
+/* Noise overlay for texture */
+.noise-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  pointer-events: none;
+  z-index: 1;
+  opacity: var(--noise-opacity);
+  background-image:
+    radial-gradient(circle at 1px 1px, rgba(255,255,255,0.15) 1px, transparent 0);
+  background-size: 20px 20px;
+  mix-blend-mode: overlay;
+}
+
+.reduced-effects .noise-overlay {
+  opacity: var(--noise-opacity-reduced);
+}
+
+/* Vignette for depth */
+.vignette {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  pointer-events: none;
+  z-index: 2;
+  background: radial-gradient(
+    ellipse at center,
+    transparent 40%,
+    rgba(13, 13, 26, 0.4) 70%,
+    rgba(13, 13, 26, 0.8) 100%
+  );
+}
+
+/* Liquid surface variants */
+.liquid-surface {
+  position: relative;
+  background: var(--glass-bg-mid);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid var(--glass-border-mid);
+  border-radius: 1rem;
+  box-shadow: var(--glass-shadow-mid);
+  overflow: hidden;
+}
+
+.liquid-surface::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: var(--specular-rim);
+  pointer-events: none;
+}
+
+/* Liquid border with gradient */
+.liquid-border {
+  position: relative;
+  border: none;
+  background: var(--glass-bg-mid);
+  backdrop-filter: blur(15px) saturate(160%);
+  -webkit-backdrop-filter: blur(15px) saturate(160%);
+  border-radius: 0.75rem;
+  box-shadow:
+    0 0 0 1px var(--glass-border-low),
+    var(--glass-shadow-low);
+}
+
+.liquid-border::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  padding: 1px;
+  background: linear-gradient(135deg,
+    var(--specular-highlight),
+    var(--glass-border-mid),
+    var(--specular-highlight)
+  );
+  border-radius: inherit;
+  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  mask-composite: xor;
+  -webkit-mask-composite: xor;
+  pointer-events: none;
+}
+
+/* Elevation variants */
+.liquid-surface-low {
+  background: var(--glass-bg-low);
+  box-shadow: var(--glass-shadow-low);
+}
+
+.liquid-surface-high {
+  background: var(--glass-bg-high);
+  box-shadow: var(--glass-shadow-high);
+}
+
+/* Focus ring utilities */
+.focus-ring {
+  outline: none;
+  transition: box-shadow 0.2s ease;
+}
+
+.focus-ring:focus-visible {
+  box-shadow: var(--focus-ring);
+}
+
+.focus-ring-inset:focus-visible {
+  box-shadow: var(--focus-ring-inset);
+}
+
+/* Reduced effects class for accessibility */
+.reduced-effects {
+  --noise-opacity: var(--noise-opacity-reduced);
+}
+
+.reduced-effects .aurora-bg {
+  animation: none;
+  opacity: 0.3;
+}
+
+.reduced-effects .noise-overlay {
+  opacity: var(--noise-opacity-reduced);
+}
+
+.reduced-effects .vignette {
+  opacity: 0.5;
+}
+
+/* Liquid Glass Refraction Filter (Progressive Enhancement) */
+.liquid-refraction {
+  filter: url('#liquid-glass-refraction');
+  position: relative;
+}
+
+.liquid-refraction::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg,
+    rgba(255, 255, 255, 0.15) 0%,
+    transparent 30%,
+    rgba(255, 255, 255, 0.05) 70%,
+    rgba(255, 255, 255, 0.2) 100%
+  );
+  border-radius: inherit;
+  pointer-events: none;
+  mix-blend-mode: overlay;
+  opacity: 0.6;
+}
+
+/* SVG Filters for Liquid Glass Effects */
+.svg-filters {
+  position: absolute;
+  width: 0;
+  height: 0;
+  overflow: hidden;
+}
+
+/* Ensure reduced motion is respected globally */
+@media (prefers-reduced-motion: reduce) {
+  .reduced-effects,
+  .aurora-bg,
+  .liquid-surface,
+  .card-hover,
+  .btn-shine {
+    animation: none !important;
+    transition: none !important;
+  }
 }

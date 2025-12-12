@@ -137,7 +137,7 @@ export const SearchPanel: React.FC<SearchPanelProps> = ({ isOpen, onClose }) => 
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <GlassCard className="w-full max-w-2xl relative max-h-[80vh] overflow-y-auto">
+      <GlassCard variant="liquid" elevation="mid" className="w-full max-w-2xl relative max-h-[80vh] overflow-y-auto">
         <button
           onClick={onClose}
           className="absolute top-4 right-4 text-white/60 hover:text-white transition-colors"
@@ -152,12 +152,14 @@ export const SearchPanel: React.FC<SearchPanelProps> = ({ isOpen, onClose }) => 
           {/* Search Input */}
           <div className="flex gap-2">
             <GlassInput
+              variant="liquid"
               value={searchQuery}
               onChange={setSearchQuery}
               placeholder="Buscar palabras, frases o versículos..."
               className="flex-1"
             />
             <GlassButton
+              variant="liquid"
               onClick={() => handleSearch(searchQuery)}
               disabled={isSearching || !searchQuery.trim()}
             >
@@ -170,7 +172,7 @@ export const SearchPanel: React.FC<SearchPanelProps> = ({ isOpen, onClose }) => 
             <div>
               <div className="flex items-center justify-between mb-2">
                 <label className="text-sm text-white/80">Búsqueda Reciente</label>
-                <GlassButton onClick={clearHistory} className="text-xs">
+                <GlassButton variant="liquid" onClick={clearHistory} className="text-xs">
                   Limpiar Historial
                 </GlassButton>
               </div>
@@ -178,6 +180,8 @@ export const SearchPanel: React.FC<SearchPanelProps> = ({ isOpen, onClose }) => 
                 {searchHistory.map((query, index) => (
                   <GlassButton
                     key={index}
+                    variant="liquid"
+                    elevation="low"
                     onClick={() => handleHistoryClick(query)}
                     className="text-sm"
                   >
@@ -204,17 +208,19 @@ export const SearchPanel: React.FC<SearchPanelProps> = ({ isOpen, onClose }) => 
             ) : (
               <div className="space-y-3">
                 {searchResults.map((result, index) => (
-                  <div
+                  <GlassCard
                     key={index}
-                    className="p-3 bg-white/5 rounded-lg border border-white/10 hover:bg-white/10 transition-colors cursor-pointer"
+                    variant="liquid"
+                    elevation="low"
+                    className="p-4 cursor-pointer hover:scale-[1.02] transition-transform"
                     onClick={() => handleResultClick(result)}
                   >
                     <div className="flex items-center justify-between mb-2">
-                      <span className="text-blue-300 font-medium">{result.reference}</span>
-                      <GlassButton className="text-xs">Ir al Versículo</GlassButton>
+                      <span className="text-gold-light font-medium">{result.reference}</span>
+                      <GlassButton variant="liquid" size="sm" className="text-xs">Ir al Versículo</GlassButton>
                     </div>
-                    <p className="text-white leading-relaxed">{result.text}</p>
-                  </div>
+                    <p className="text-white/90 leading-relaxed">{result.text}</p>
+                  </GlassCard>
                 ))}
               </div>
             )}

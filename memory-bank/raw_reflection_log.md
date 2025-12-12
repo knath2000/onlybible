@@ -119,3 +119,27 @@ TaskRef: "Mixed-content/CORS fixes & verse fetch regression"
 - **Fixed Live Errors**: Deployed frontend now loads verses without mixed-content or CORS errors.
 - **Service Hardening**: `BibleService.fetchVerse/fetchChapter` updated to structured queries and robust parsing of `text/content`.
 - **Reusable Pattern**: Documented relative-path + CORS-header approach for future proxies.
+
+## Date: 2025-12-12
+TaskRef: "Range parsing + translation stability + stop phantom verses"
+
+### Learnings:
+- **Query Param Mode Detection**: Defaulted query params can accidentally trigger the wrong API mode; `searchParams.has()` is the reliable way to distinguish missing vs present.
+- **Authoritative Chapter Metadata**: `biblia-api` chapter endpoint returns `{ verses: number, text: string[] }`; use it for both range slicing and verse-count metadata (`meta=1`).
+- **Upstream Response Shape Matters**: `bible-api.com` returns `verses[]`; parsing that array is more reliable than splitting `text` by newlines.
+- **Infinite Queries Must Stop Authoritatively**: Stopping by `lastPage.length < chunkSize` is fragile; stop by `chapterVerseCount` and return `undefined` from `getNextPageParam`.
+- **Defense-in-Depth Prevents UI Regressions**: Validating server payloads + sanitizing client results prevents phantom verse cards even with stale caches or transient upstream errors.
+- **TanStack Query TS Generics**: `pageParam` is `unknown` unless you specify generics; `data` is `InfiniteData<TPage>`, not `TPage`.
+
+### Difficulties:
+- **Phantom Verse Cards**: Genesis 1 displayed verse containers past 31 containing error strings (“Error loading verse 32 …”), caused by pagination and/or stale cache behavior.
+- **TypeScript Strictness**: Refactoring infinite query page shape introduced TS errors (`pageParam` unknown, `pages` missing) until generics were corrected.
+
+### Successes:
+- **No Phantom Verses**: Infinite scroll now stops cleanly at chapter end (server validation + client sanitization + authoritative pagination stop logic).
+- **Stable Translation Toggle**: Translate button fetches English for all loaded verses in one batch, primes caches, and alignment no longer crashes on missing text.
+- **Build Green**: Confirmed `npm run build` passes after all changes.
+
+### Improvements Identified for Consolidation:
+- **Pagination Rule**: Always stop infinite pagination using authoritative metadata (known totals), never by inferred page size alone.
+- **Schema Versioning**: Include a version token in query keys when changing pagination/shape logic to avoid stale cached pages.

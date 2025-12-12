@@ -7,25 +7,43 @@ interface GlassCardProps {
   className?: string;
   hover?: boolean;
   onClick?: () => void;
+  variant?: 'default' | 'liquid';
+  elevation?: 'low' | 'mid' | 'high';
 }
 
-export const GlassCard: React.FC<GlassCardProps> = ({ 
-  children, 
+export const GlassCard: React.FC<GlassCardProps> = ({
+  children,
   className = '',
   hover = false,
-  onClick
+  onClick,
+  variant = 'default',
+  elevation = 'mid'
 }) => {
+  const baseClasses = `
+    backdrop-blur-xl
+    rounded-2xl
+    p-6
+    transition-all duration-300
+    ${hover ? 'card-hover cursor-pointer focus-ring' : ''}
+  `;
+
+  const variantClasses = {
+    default: 'glass-card',
+    liquid: 'liquid-surface'
+  };
+
+  const elevationClasses = {
+    low: 'liquid-surface-low',
+    mid: '',
+    high: 'liquid-surface-high'
+  };
+
   return (
-    <div 
+    <div
       className={`
-        glass-card
-        bg-[rgba(37,37,66,0.6)]
-        backdrop-blur-xl
-        border border-white/10
-        rounded-2xl
-        shadow-[0_8px_32px_rgba(0,0,0,0.3)]
-        p-6
-        ${hover ? 'card-hover cursor-pointer' : ''}
+        ${baseClasses}
+        ${variantClasses[variant]}
+        ${variant === 'liquid' ? elevationClasses[elevation] : ''}
         ${className}
       `}
       onClick={onClick}

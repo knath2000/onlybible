@@ -25,7 +25,7 @@
 14. **Infinite Scrolling**: `useInfiniteQuery` + Intersection Observer for seamless verse loading
 15. **Relative Origin Fetching**: Services call relative `/api/...` paths to avoid mixed-content in production.
 16. **CORS-Friendly Proxies**: API routes export `OPTIONS` with `Access-Control-Allow-*` headers to support cross-origin dev/testing.
-17. **Range Clamping for Infinite Lists**: Before fetching a verse range, clamp `start/end` to the chapter’s true verse count; if the window is past the end, return `[]` so infinite queries stop cleanly (prevents phantom “verse not found” cards).
+17. **Range Clamping for Infinite Lists**: Enforce chapter boundaries server-side (chapter slicing) plus client-side sanitization; never render out-of-range verses and return `[]` past chapter end so infinite queries stop cleanly.
 18. **Search-to-Anchor Reliability**: Scroll to anchor IDs without `#`, and keep requesting more pages until the target anchor exists, then center it smoothly.
 19. **TTS Guard Rails**: `/api/tts` surfaces `configured: false` with hints when env vars are missing; UI shows friendly “audio not available” instead of generic errors.
 20. **Themed Headers & Cards**: Top bar and verse cards use glassmorphic gold/purple gradients, serif italics, and underline glows to align with the Luminous Verses aesthetic.
@@ -34,6 +34,8 @@
 23. **Meta Endpoint for Verse Counts**: Separate `/api/bible?meta=1` endpoint returns authoritative chapter metadata to eliminate hardcoded verse count tables.
 24. **Bulk Translation Pattern**: When enabling translations, fetch English for entire loaded range in one batch request instead of per-verse calls.
 25. **Response Shape Alignment**: Ensure proxy routes return consistent structures matching upstream APIs to avoid parsing mismatches.
+26. **Authoritative Pagination Stop**: `useInfiniteQuery.getNextPageParam` should stop based on known chapter boundaries (chapterVerseCount) instead of relying on `lastPage.length`.
+27. **Query Cache Versioning**: Include `chunkSize` and a schema/version token in the infinite query key to prevent stale cached pages from resurfacing after behavior changes.
 
 ## Design Patterns
 
@@ -71,7 +73,11 @@ isTranslating: boolean;  // Translation operations
 const { data, fetchNextPage } = useInfiniteQuery({
   queryKey: ['verses', book, chapter],
   queryFn: ({ pageParam }) => fetchVerseRange(..., pageParam),
-  getNextPageParam: (lastPage, allPages) => ...
+  getNextPageParam: (lastPage, allPages) => {
+    // Return undefined to stop fetching when next page exceeds chapterVerseCount
+    const nextStart = allPages.length * chunkSize + 1;
+    return nextStart > lastPage.chapterVerseCount ? undefined : allPages.length + 1;
+  }
 });
 
 // Intersection Observer triggers fetch
@@ -131,7 +137,8 @@ ClientProviders (QueryClient)
 User selects book/chapter → BibleContext (useInfiniteQuery)
     → BibleService.fetchVerseRange()
     → /api/bible?startVerse=...&endVerse=...
-    → biblia-api.vercel.app (Batched calls)
+    → /api/bible range mode fetches upstream chapter once + slices `text[]`
+    → biblia-api.vercel.app/api/v1/{book}/{chapter}
     → TanStack Query Cache
     → BibleContext State (infiniteVerses)
     → UI Update
@@ -142,12 +149,11 @@ User selects book/chapter → BibleContext (useInfiniteQuery)
 User clicks "Traducir Versículo"
     → translateVerse()
     → Check: showTranslation? → TOGGLE_TRANSLATION (hide)
-    → Check: translatedText? → TOGGLE_TRANSLATION (show cached)
-    → dispatch SET_TRANSLATING (if not cached)
-    → TranslationService.translateVerse()
-    → /api/bible/english?book=...
-    → bible-api.com (KJV)
-    → dispatch SET_TRANSLATED_TEXT
+    → dispatch SET_TRANSLATING
+    → TranslationService.fetchEnglishRange(minLoadedVerse, maxLoadedVerse) (prime per-verse caches)
+    → /api/bible/english?startVerse=...&endVerse=...
+    → bible-api.com (KJV) using upstream `verses[]`
+    → VerseItem fetchEnglishVerse() hits cache; alignment uses cached text
     → dispatch TOGGLE_TRANSLATION (show)
 ```
 
@@ -174,11 +180,18 @@ User hovers over word
 
 ### Spanish Bible Route (`/api/bible`)
 ```typescript
-GET /api/bible?passage=Génesis+1:1
+GET /api/bible?book=Génesis&chapter=1&verse=1
     → normalizeText("Génesis") → "genesis"
-    → bookNameMapping["genesis"] → "genesis"
     → fetch(biblia-api.vercel.app/api/v1/genesis/1/1)
-    → Return JSON { text, reference, translation }
+    → Return JSON { verses: [{ verse, text }], reference }
+
+GET /api/bible?book=Génesis&chapter=1&startVerse=1&endVerse=20
+    → fetch(biblia-api.vercel.app/api/v1/genesis/1)
+    → slice `text[]` and return JSON { verses: [{ verse, text }], chapterVerseCount }
+
+GET /api/bible?book=Génesis&chapter=1&meta=1
+    → fetch(biblia-api.vercel.app/api/v1/genesis/1)
+    → Return JSON { chapterVerseCount }
 ```
 
 ### English Bible Route (`/api/bible/english`)
@@ -187,7 +200,7 @@ GET /api/bible/english?book=Génesis&chapter=1&verse=1
     → normalizeText("Génesis") → "genesis"
     → spanishToEnglishBooks["genesis"] → "Genesis"
     → fetch(bible-api.com/Genesis+1:1?translation=kjv)
-    → Return JSON { text, reference, translation }
+    → Return JSON { verses: [{ verse, text }], reference }
 ```
 
 ### Word Alignment Pattern

@@ -8,10 +8,13 @@ import { VerseItem } from './VerseItem';
 import { BibleVerse } from '../lib/services/BibleService';
 
 export const InfiniteVerseList: React.FC = () => {
-  const { 
-    state, 
-    loadNextVerses 
+  const {
+    state,
+    loadNextVerses
   } = useBible();
+
+  // Determine which verse is currently being viewed (for emphasis)
+  const currentVerseKey = `${state.currentBook}-${state.currentChapter}-${state.currentVerse}`;
   
   const sentinelRef = useRef<HTMLDivElement>(null);
   const [scrolled, setScrolled] = useState(false);
@@ -47,15 +50,27 @@ export const InfiniteVerseList: React.FC = () => {
 
   return (
     <>
-      <div className="space-y-4 pb-20 scroll-smooth">
-        {state.infiniteVerses.map((verse: BibleVerse) => (
-          <>
-            <a id={`${verse.book}${verse.chapter}:${verse.verse}`} className="sr-only" />
-            <GlassCard key={`${verse.book}-${verse.chapter}-${verse.verse}`} className="p-6">
-              <VerseItem verse={verse} />
-            </GlassCard>
-          </>
-        ))}
+      <div className="space-y-6 pb-20 scroll-smooth">
+        {state.infiniteVerses.map((verse: BibleVerse) => {
+          const verseKey = `${verse.book}-${verse.chapter}-${verse.verse}`;
+          const isCurrentVerse = verseKey === currentVerseKey;
+
+          return (
+            <>
+              <a id={`${verse.book}${verse.chapter}:${verse.verse}`} className="sr-only" />
+              <GlassCard
+                key={verseKey}
+                variant="liquid"
+                elevation={isCurrentVerse ? "high" : "mid"}
+                className={`p-6 transition-all duration-500 ${
+                  isCurrentVerse ? 'ring-2 ring-gold/50 shadow-gold-glow' : ''
+                }`}
+              >
+                <VerseItem verse={verse} isCurrentVerse={isCurrentVerse} />
+              </GlassCard>
+            </>
+          );
+        })}
 
         {state.isFetchingNextPage && (
           <div className="flex justify-center p-4" role="status" aria-live="polite" aria-label="Loading more verses">

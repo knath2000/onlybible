@@ -10,9 +10,9 @@
 ## Recent Changes (Latest Session - Infinite Scroll Implementation)
 
 ### Data Layer Enhancements (Phase 1)
-- ✅ **Range Fetching**: Updated `/api/bible` and `BibleService` to support `startVerse` and `endVerse` params.
-- ✅ **Batching**: Implemented parallel fetch logic for range requests to external APIs.
-- ✅ **Caching**: Configured 24h TTL caching for verse ranges to optimize performance and reduce API calls.
+- ✅ **Range Fetching**: Updated `/api/bible` and `BibleService` to support `meta`, single (`verse`), and range (`startVerse/endVerse`) modes.
+- ✅ **Chapter-Slice Ranges**: `/api/bible` range mode fetches a whole chapter once (`/api/v1/{book}/{chapter}`) and slices `text[]` to serve ranges (no N-parallel verse calls).
+- ✅ **Caching**: Configured 24h TTL caching for verse ranges and chapter metadata to optimize performance and reduce API calls.
 
 ### State Management (Phase 2)
 - ✅ **TanStack Query**: Integrated `@tanstack/react-query` provider in `app/layout.tsx`.
@@ -48,7 +48,7 @@
 - ✅ **Top Bar Glow**: Reader header restyled with gold/purple glass gradient, expanded width, and refined button variants for hierarchy.
 
 ### Infinite Scroll Robustness (This Session)
-- ✅ **Range Clamping**: `fetchVerseRange` clamps to the real verse count and returns empty when past chapter end—no more "verse not found" tails.
+- ✅ **Range Clamping**: Enforced server-side (chapter slicing) plus client-side sanitization so out-of-range verses never render.
 - ✅ **Search Jump Reliability**: Search panel scrolls to anchors without leading `#`, auto-loads more pages until the target appears, then centers smoothly.
 
 ### API Route Fixes & Translation System (Latest Session)
@@ -61,6 +61,12 @@
 - ✅ **Translate Button Logic**: Enhanced to fetch English for all currently loaded infinite verses in one batch request.
 - ✅ **Prefetch Optimization**: Replaced per-verse loops with efficient range prefetching in infinite query.
 - ✅ **Alignment Guards**: Added validation to prevent `undefined.split()` crashes in word alignment computation.
+
+### Chapter-End & Pagination Correctness (Latest Session)
+- ✅ **No Phantom Verses**: Eliminated cards like “Error loading verse 32” by validating upstream chapter shape in `/api/bible` and filtering out-of-range/placeholder verses client-side.
+- ✅ **Authoritative Pagination Stop**: `useInfiniteQuery.getNextPageParam` now stops based on `chapterVerseCount` (not `lastPage.length`), so infinite scrolling ends cleanly even if stale cached data exists.
+- ✅ **Cache Busting**: Updated infinite query key to include `chunkSize` and a schema version to prevent stale pages from resurfacing after behavior changes.
+- ✅ **Build Verification**: Fixed `useInfiniteQuery` TypeScript generics (`pageParam` + `InfiniteData`) and confirmed `npm run build` passes.
 
 ## Next Steps
 1. **Performance Monitoring**: Observe infinite scroll performance on low-end devices; consider virtualization if list grows too large.

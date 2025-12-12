@@ -643,58 +643,127 @@ export const SpanishBibleReader: React.FC = () => {
 // Bible Reader View
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-violet-900 text-white p-4 md:p-8">
+    <div className="min-h-screen text-white p-4 md:p-8 relative overflow-hidden">
+      {/* SVG Filters for Liquid Glass Effects */}
+      <div className="svg-filters">
+        <svg xmlns="http://www.w3.org/2000/svg" version="1.1">
+          <defs>
+            <filter id="liquid-glass-refraction" x="-50%" y="-50%" width="200%" height="200%">
+              {/* Base blur for glass effect */}
+              <feGaussianBlur in="SourceGraphic" stdDeviation="1" result="blur" />
+
+              {/* Displacement for refraction effect */}
+              <feTurbulence type="fractalNoise" baseFrequency="0.02" numOctaves="3" result="noise" />
+              <feDisplacementMap in="blur" in2="noise" scale="2" result="displaced" />
+
+              {/* Specular rim lighting */}
+              <feMorphology operator="dilate" radius="1" result="dilated" />
+              <feComposite in="dilated" in2="displaced" operator="over" result="rim" />
+
+              {/* Final composition */}
+              <feColorMatrix type="matrix" values="1 0.1 0.1 0 0  0.1 1 0.1 0 0  0.1 0.1 1 0 0  0 0 0 1 0" />
+            </filter>
+          </defs>
+        </svg>
+      </div>
+
+      {/* Aurora Background Layers */}
+      <div className="aurora-bg"></div>
+      <div className="noise-overlay"></div>
+      <div className="vignette"></div>
+
+      {/* Reader Stage - stable surface for content */}
+      <div className="relative z-10 min-h-screen bg-gradient-to-br from-gray-900/40 via-purple-900/30 to-violet-900/40 backdrop-blur-[2px]">
       {/* Header/Navigation */}
-      <div className="sticky top-0 z-20 topbar-shell pb-4">
-        <div className="max-w-5xl mx-auto topbar-inner flex flex-col md:flex-row gap-4 items-center justify-between">
-          {/* Book Selector */}
-          <GlassInput className="w-full md:w-64">
-            <select value={state.currentBook} onChange={handleBookChange} className="bg-transparent border-none text-white w-full">
-              {state.books.map(book => (
-                <option key={book} value={book}>{book}</option>
-              ))}
-            </select>
-          </GlassInput>
+      <div className="sticky top-0 z-20 reader-topbar liquid-refraction">
+        {/* Scroll Progress Indicator */}
+        <div
+          className="scroll-progress"
+          style={{
+            transform: `scaleX(${Math.min((state.currentVerse / Math.max(state.verses.length, 1)), 1)})`
+          }}
+        />
 
-          {/* Chapter Selector */}
-          <GlassInput className="w-full md:w-28">
-            <select value={state.currentChapter} onChange={handleChapterChange} className="bg-transparent border-none text-white w-full">
-              {state.chapters.map(ch => (
-                <option key={ch} value={ch}>{ch}</option>
-              ))}
-            </select>
-          </GlassInput>
+        <div className="max-w-5xl mx-auto px-6 py-4 flex flex-col md:flex-row gap-6 items-center justify-between relative">
+          {/* Zone 1: Now Reading */}
+          <div className="flex flex-col items-center md:items-start">
+            <div className="reading-title">
+              {state.currentBook} {state.currentChapter}
+            </div>
+            <div className="text-white/60 text-sm">
+              Versículo {state.currentVerse} • {state.verses.length} versículos totales
+            </div>
+          </div>
 
-          {/* Verse Selector (optional for infinite, can hide or use for jump) */}
-          <GlassInput className="w-full md:w-28">
-            <select value={state.currentVerse} onChange={handleVerseChange} className="bg-transparent border-none text-white w-full">
-              {state.verses.map(v => (
-                <option key={v} value={v}>{v}</option>
-              ))}
-            </select>
-          </GlassInput>
+          {/* Zone 2: Navigation Pills */}
+          <div className="flex items-center gap-3">
+            {/* Book Selector */}
+            <div className="nav-pill">
+              <select value={state.currentBook} onChange={handleBookChange}>
+                {state.books.map(book => (
+                  <option key={book} value={book}>{book}</option>
+                ))}
+              </select>
+            </div>
 
-          {/* Translation Toggle */}
-          <GlassButton onClick={translateVerse} disabled={state.isTranslating} variant="gold">
-            {state.isTranslating ? 'Traduciendo...' : 'Traducir Versículo'}
-          </GlassButton>
+            {/* Chapter Selector */}
+            <div className="nav-pill">
+              <select value={state.currentChapter} onChange={handleChapterChange}>
+                {state.chapters.map(ch => (
+                  <option key={ch} value={ch}>{ch}</option>
+                ))}
+              </select>
+            </div>
 
-          {/* Test Connection Button */}
-          <GlassButton onClick={testConnection} disabled={isTestingConnection} variant="outline">
-            {isTestingConnection ? 'Probando...' : 'Probar Conexión'}
-          </GlassButton>
+            {/* Verse Selector */}
+            <div className="nav-pill">
+              <select value={state.currentVerse} onChange={handleVerseChange}>
+                {state.verses.map(v => (
+                  <option key={v} value={v}>{v}</option>
+                ))}
+              </select>
+            </div>
+          </div>
 
-          {/* Settings and Search */}
-          <div className="flex gap-2">
-            <GlassButton onClick={() => setSettingsOpen(!settingsOpen)} size="sm">
-              ⚙️ Ajustes
+          {/* Zone 3: Actions */}
+          <div className="flex items-center gap-2">
+            {/* Translation Toggle */}
+            <GlassButton
+              onClick={translateVerse}
+              disabled={state.isTranslating}
+              variant="liquid"
+              size="sm"
+              icon={state.isTranslating ? undefined : "🌐"}
+            >
+              {state.isTranslating ? 'Traduciendo...' : 'Traducir'}
             </GlassButton>
-            <GlassButton onClick={() => setSearchOpen(!searchOpen)} size="sm">
-              🔍 Buscar
-            </GlassButton>
-            <GlassButton onClick={() => setDebugInfo(!debugInfo)} size="sm" variant="outline">
-              Debug
-            </GlassButton>
+
+            {/* Search */}
+            <GlassButton
+              onClick={() => setSearchOpen(!searchOpen)}
+              variant="liquid"
+              size="sm"
+              icon="🔍"
+            />
+
+            {/* Settings */}
+            <GlassButton
+              onClick={() => setSettingsOpen(!settingsOpen)}
+              variant="liquid"
+              size="sm"
+              icon="⚙️"
+            />
+
+            {/* Connection Test (moved to overflow menu) */}
+            <div className="relative">
+              <GlassButton
+                onClick={() => {/* toggle menu */}}
+                variant="liquid"
+                size="sm"
+                icon="⋯"
+              />
+              {/* Overflow menu would go here */}
+            </div>
           </div>
         </div>
       </div>
@@ -719,6 +788,7 @@ export const SpanishBibleReader: React.FC = () => {
       {/* SettingsPanel and SearchPanel - assume existing */}
       {settingsOpen && <SettingsPanel isOpen={settingsOpen} onClose={() => setSettingsOpen(false)} />}
       {searchOpen && <SearchPanel isOpen={searchOpen} onClose={() => setSearchOpen(false)} />}
+    </div>
     </div>
   );
 };

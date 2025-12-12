@@ -3,12 +3,13 @@
 import React from 'react';
 
 interface GlassButtonProps {
-  children: React.ReactNode;
+  children?: React.ReactNode;
   onClick?: () => void;
   className?: string;
   disabled?: boolean;
-  variant?: 'default' | 'gold' | 'outline' | 'ghost';
+  variant?: 'default' | 'gold' | 'outline' | 'ghost' | 'liquid';
   size?: 'sm' | 'md' | 'lg';
+  elevation?: 'low' | 'mid' | 'high';
   icon?: React.ReactNode;
   iconRight?: React.ReactNode;
 }
@@ -20,6 +21,7 @@ export const GlassButton: React.FC<GlassButtonProps> = ({
   disabled = false,
   variant = 'default',
   size = 'md',
+  elevation = 'mid',
   icon,
   iconRight
 }) => {
@@ -54,7 +56,18 @@ export const GlassButton: React.FC<GlassButtonProps> = ({
       bg-transparent border-none
       text-white/80
       hover:text-white hover:bg-white/10
+    `,
+    liquid: `
+      liquid-border
+      text-white
+      hover:text-white
     `
+  };
+
+  const elevationClasses = {
+    low: 'liquid-surface-low',
+    mid: '',
+    high: 'liquid-surface-high'
   };
 
   const sizeStyles = {
@@ -70,8 +83,9 @@ export const GlassButton: React.FC<GlassButtonProps> = ({
       className={`
         ${baseStyles}
         ${variantStyles[variant]}
+        ${variant === 'liquid' ? elevationClasses[elevation] : ''}
         ${sizeStyles[size]}
-        ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
+        ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer focus-ring'}
         ${className}
       `}
     >

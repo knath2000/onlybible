@@ -56,32 +56,43 @@ export const WordTranslationTooltip: React.FC<WordTranslationTooltipProps> = ({ 
       {children}
 
       {showTooltip && (
-        <div 
-          className="absolute z-50 bottom-full left-1/2 transform -translate-x-1/2 mb-2 animate-fade-in"
-          style={{ animation: 'fadeIn 0.2s ease-out' }}
+        <div
+          className="absolute z-50 bottom-full left-1/2 transform -translate-x-1/2 mb-3 animate-fade-in"
+          style={{
+            animation: 'fadeIn 0.15s ease-out'
+          }}
         >
-          <div className="bg-[#1a1a2e] border border-[#f5a623]/30 rounded-xl px-4 py-2 shadow-lg shadow-black/30 min-w-[120px] text-center whitespace-nowrap">
-            {isLoading ? (
-              <div className="text-white/60 text-sm">Traduciendo...</div>
-            ) : translation ? (
-              <div className="text-sm">
-                <span className="text-white/80">{cleanWord}</span>
-                {isDifferent && (
-                  <>
-                    <span className="text-white/40 mx-2">→</span>
-                    <span className="text-[#f5a623] font-medium">{translation}</span>
-                  </>
-                )}
-                {!isDifferent && (
-                  <span className="text-white/50 ml-2">(same)</span>
-                )}
+          <div className="liquid-border elevation-mid rounded-lg px-3 py-2 shadow-xl min-w-[140px] text-center whitespace-nowrap relative overflow-hidden">
+            {/* Subtle inner highlight */}
+            <div className="absolute inset-0 bg-gradient-to-br from-white/10 via-transparent to-white/5 rounded-lg" />
+
+            <div className="relative">
+              {isLoading ? (
+                <div className="text-white/70 text-sm">Traduciendo...</div>
+              ) : translation ? (
+                <div className="text-sm leading-tight">
+                  <span className="text-white font-medium">{cleanWord}</span>
+                  {isDifferent && (
+                    <>
+                      <span className="text-white/50 mx-1.5 text-xs">→</span>
+                      <span className="text-gold-light font-semibold">{translation}</span>
+                    </>
+                  )}
+                  {!isDifferent && (
+                    <span className="text-white/40 ml-2 text-xs italic">(igual)</span>
+                  )}
+                </div>
+              ) : (
+                <div className="text-white/50 text-sm">Sin traducción</div>
+              )}
+            </div>
+
+            {/* Enhanced tooltip arrow with liquid glass effect */}
+            <div className="absolute top-full left-1/2 transform -translate-x-1/2">
+              <div className="relative">
+                <div className="w-3 h-3 bg-inherit border-r border-b border-white/10 transform rotate-45 translate-y-[-50%] translate-x-[-50%]" />
+                <div className="absolute inset-0 w-3 h-3 bg-gradient-to-br from-white/20 to-transparent transform rotate-45 translate-y-[-50%] translate-x-[-50%] rounded-sm" />
               </div>
-            ) : (
-              <div className="text-white/40 text-sm">Sin traducción</div>
-            )}
-            {/* Tooltip arrow */}
-            <div className="absolute top-full left-1/2 transform -translate-x-1/2 -mt-px">
-              <div className="border-8 border-transparent border-t-[#1a1a2e]" />
             </div>
           </div>
         </div>

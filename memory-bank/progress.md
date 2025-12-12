@@ -37,6 +37,7 @@
 - **English Proxy Stability**: Fixed response parsing to use upstream `verses[]` array, eliminating brittle newline splitting.
 - **Bulk Translation**: Translate button now fetches English for all visible infinite verses in one batch request.
 - **Alignment Crash Prevention**: Added validation guards to prevent `undefined.split()` errors in word alignment computation.
+- **No Phantom Verses**: Infinite scroll stops at the real chapter end (server validation + client sanitization + authoritative `getNextPageParam` stop condition).
 
 ## What's Left to Build
 - **Alignment Accuracy Improvements** - Refine heuristic matching for better word-to-word connections
@@ -59,7 +60,7 @@
 ## Known Issues
 - **Word Dictionary Coverage**: Dictionary expanded to ~350 words with API fallback; covers most common biblical terms
 - **Alignment Accuracy**: Heuristic matching works well but may miss complex alignments in poetic passages
-- **Limited Range Display**: Shows a small window of verses, not full chapters yet
+- **Virtualization Not Implemented**: Very long chapters/lists may benefit from list virtualization on low-end devices
 - **No Offline Support**: Requires internet connection for all operations
 - **TTS Requires Keys**: Audio depends on valid cloud TTS credentials; no offline TTS fallback yet
 - **Search Still Mocked**: Full-text search results are mocked; needs real API integration

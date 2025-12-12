@@ -1,9 +1,14 @@
 'use client';
 
 import React, { createContext, useContext, useReducer, ReactNode, useEffect } from 'react';
-import { useInfiniteQuery } from '@tanstack/react-query';
+import { useInfiniteQuery, type InfiniteData } from '@tanstack/react-query';
 import { bibleService, translationService } from '../api';
 import { BibleVerse } from '../services/BibleService';
+
+type InfiniteVersePage = {
+  verses: BibleVerse[];
+  chapterVerseCount: number;
+};
 
 interface BibleState {
   currentBook: string;
@@ -137,6 +142,7 @@ export const BibleProvider = ({ children }: { children: ReactNode }) => {
   const [state, dispatch] = useReducer(bibleReducer, initialState);
 
   const chunkSize = state.settings.chunkSize;
+  const infiniteQueryKey = ['infinite-verses', state.currentBook, state.currentChapter, chunkSize, 'v2'] as const;
 
   // 1. Setup Infinite Query
   const {
@@ -145,8 +151,15 @@ export const BibleProvider = ({ children }: { children: ReactNode }) => {
     hasNextPage,
     isFetchingNextPage,
     error: queryError
-  } = useInfiniteQuery({
-    queryKey: ['infinite-verses', state.currentBook, state.currentChapter],
+  } = useInfiniteQuery<
+    InfiniteVersePage,
+    Error,
+    InfiniteData<InfiniteVersePage, number>,
+    typeof infiniteQueryKey,
+    number
+  >({
+    // Include chunkSize + schema version to avoid stale cached pages (e.g. phantom error verses).
+    queryKey: infiniteQueryKey,
     queryFn: async ({ pageParam = 1 }) => {
       // Start index is 1-based. Page 1: 1-20, Page 2: 21-40
       const start = (pageParam - 1) * chunkSize + 1;
@@ -159,24 +172,34 @@ export const BibleProvider = ({ children }: { children: ReactNode }) => {
         start, 
         end
       );
+
+      // Authoritative verse count for pagination stop conditions
+      const chapterVerseCount = await bibleService.getVersesInChapter(
+        state.currentBook,
+        state.currentChapter
+      );
       
       // Background prefetch English translations for the entire chunk
       // We don't await this to keep UI fast, relying on internal cache of TranslationService
       if (verses.length > 0) {
+        const actualStart = verses[0]?.verse ?? start;
+        const actualEnd = verses[verses.length - 1]?.verse ?? end;
         translationService.fetchEnglishRange(
           state.currentBook,
           state.currentChapter,
-          start,
-          end
+          actualStart,
+          actualEnd
         ).catch(console.warn);
       }
 
-      return verses;
+      return { verses, chapterVerseCount };
     },
     initialPageParam: 1,
     getNextPageParam: (lastPage, allPages) => {
-      // If we got fewer verses than requested, we're likely at the end
-      if (lastPage.length < chunkSize) return undefined;
+      // TanStack Query stops fetching when this returns undefined.
+      // We stop based on authoritative chapter verse count, not on page length.
+      const nextStart = allPages.length * chunkSize + 1;
+      if (nextStart > lastPage.chapterVerseCount) return undefined;
       return allPages.length + 1;
     },
     enabled: !!state.currentBook && !!state.currentChapter, // Only run when book/chapter selected
@@ -187,7 +210,7 @@ export const BibleProvider = ({ children }: { children: ReactNode }) => {
   // This ensures components consuming 'state' see the infinite list
   useEffect(() => {
     if (infiniteData) {
-      const allVerses = infiniteData.pages.flatMap(page => page);
+      const allVerses = infiniteData.pages.flatMap(page => page.verses);
       dispatch({ type: 'SET_INFINITE_VERSES', payload: allVerses });
     }
   }, [infiniteData]);

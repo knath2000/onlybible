@@ -96,6 +96,28 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       }
 
       const chapterData = await chapterRes.json();
+      // Validate upstream response shape to avoid emitting placeholder/error verses.
+      // The upstream chapter endpoint should return:
+      // { book: string, chapter: number, verses: number, text: string[] }
+      if (
+        !chapterData ||
+        typeof chapterData.verses !== 'number' ||
+        !Number.isFinite(chapterData.verses) ||
+        !Array.isArray(chapterData.text)
+      ) {
+        return NextResponse.json(
+          {
+            error: 'Invalid chapter response from upstream API',
+            details: {
+              book: normalizedBook,
+              chapter: chapterNum,
+              versesType: typeof chapterData?.verses,
+              textIsArray: Array.isArray(chapterData?.text),
+            },
+          },
+          { status: 500 }
+        );
+      }
 
       // Clamp range to available verses
       const safeStart = Math.max(1, startVerse);

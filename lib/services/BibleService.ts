@@ -225,15 +225,38 @@ export class BibleService {
 
       const data = await response.json();
 
-      // Server now handles clamping and returns proper verse objects
-      const verses: BibleVerse[] = data.verses.map((v: any) => ({
-        book,
-        chapter,
-        verse: v.verse, // Use verse number from server response
-        text: v.text || 'Verse not available',
-        reference: data.reference,
-        translation: 'RVR60'
-      }));
+      const rawVerses: any[] = Array.isArray(data?.verses) ? data.verses : [];
+
+      // Defensive sanitization: never allow verses beyond the chapter boundary.
+      // Prefer authoritative count returned by the proxy, otherwise fall back to meta lookup.
+      const chapterVerseCount =
+        typeof data?.chapterVerseCount === 'number' && Number.isFinite(data.chapterVerseCount)
+          ? data.chapterVerseCount
+          : await this.getVersesInChapter(book, chapter);
+
+      const verses: BibleVerse[] = rawVerses
+        .map((v: any) => {
+          const verseNum = typeof v?.verse === 'number' ? v.verse : Number(v?.verse);
+          const text = typeof v?.text === 'string' ? v.text : '';
+
+          return {
+            book,
+            chapter,
+            verse: verseNum,
+            text: text || 'Verse not available',
+            reference: data?.reference || `${book} ${chapter}:${startVerse}-${endVerse}`,
+            translation: 'RVR60',
+          } satisfies BibleVerse;
+        })
+        .filter((v) => {
+          if (!Number.isFinite(v.verse)) return false;
+          if (v.verse < 1) return false;
+          if (Number.isFinite(chapterVerseCount) && v.verse > chapterVerseCount) return false;
+          if (typeof v.text !== 'string') return false;
+          // Drop known placeholder error strings if they ever appear from stale cache/upstream issues
+          if (/^Error loading verse\s+\d+:/i.test(v.text)) return false;
+          return true;
+        });
 
       // Cache for 24h
       this.cache.setCachedData(cacheKey, verses, 86400);

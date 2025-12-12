@@ -29,6 +29,11 @@
 18. **Search-to-Anchor Reliability**: Scroll to anchor IDs without `#`, and keep requesting more pages until the target anchor exists, then center it smoothly.
 19. **TTS Guard Rails**: `/api/tts` surfaces `configured: false` with hints when env vars are missing; UI shows friendly “audio not available” instead of generic errors.
 20. **Themed Headers & Cards**: Top bar and verse cards use glassmorphic gold/purple gradients, serif italics, and underline glows to align with the Luminous Verses aesthetic.
+21. **Query Parameter Mode Detection**: Use `request.nextUrl.searchParams.has()` instead of defaulted values to distinguish missing vs present parameters for API route logic.
+22. **Chapter-Slice Range Fetching**: Fetch entire chapter once, then slice `text[]` array for range requests instead of N parallel single-verse calls.
+23. **Meta Endpoint for Verse Counts**: Separate `/api/bible?meta=1` endpoint returns authoritative chapter metadata to eliminate hardcoded verse count tables.
+24. **Bulk Translation Pattern**: When enabling translations, fetch English for entire loaded range in one batch request instead of per-verse calls.
+25. **Response Shape Alignment**: Ensure proxy routes return consistent structures matching upstream APIs to avoid parsing mismatches.
 
 ## Design Patterns
 

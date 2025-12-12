@@ -4,7 +4,7 @@
 - **Framework**: Next.js 16 (App Router)
 - **Language**: TypeScript
 - **UI**: React with Tailwind CSS
-- **State**: React Context API with useReducer
+- **State**: React Context API with useReducer + TanStack Query for infinite scrolling
 - **API**: Fetch API with caching
 - **Design**: Glassmorphic CSS
 
@@ -30,8 +30,8 @@
 
 | Route | Purpose | External API |
 |-------|---------|--------------|
-| `/api/bible` | Spanish verses (RVR60) | biblia-api.vercel.app |
-| `/api/bible/english` | English verses (KJV) | bible-api.com |
+| `/api/bible` | Spanish verses (RVR60) - supports meta/range/single modes | biblia-api.vercel.app |
+| `/api/bible/english` | English verses (KJV) - uses upstream verses[] array | bible-api.com |
 | `/api/translate/word` | Word translation fallback | api.mymemory.translated.net |
 | `/api/tts` | Verse audio playback (MP3) | Azure Speech (configurable) |
 
@@ -68,10 +68,10 @@ function normalizeText(text: string): string {
 ```
 
 ### Caching Strategy
-- Spanish verses: 24-hour cache
-- English verses: 24-hour cache
+- Spanish verses: 24-hour cache (individual + range)
+- English verses: 24-hour cache (individual primed by range fetches)
+- Chapter metadata: 24-hour cache (from meta endpoint)
 - Word translations: 1-hour cache (dictionary), 24-hour cache (API)
-- Book/chapter metadata: Long-term cache
 - API word translations: 24-hour cache
 - TTS audio: not cached by default (provider-dependent); can add hash-based 24-hour cache if needed
 
@@ -87,12 +87,19 @@ function normalizeText(text: string): string {
 ### State Management
 ```typescript
 interface BibleState {
-  isLoading: boolean;      // Verse fetching
-  isTranslating: boolean;  // Translation fetching
-  verseText: string;       // Spanish verse
-  translatedText: string;  // English verse
-  showTranslation: boolean;
-  // ... navigation state
+  isLoading: boolean;           // Verse fetching
+  isTranslating: boolean;       // Translation fetching
+  verseText: string;            // Current Spanish verse
+  translatedText: string;       // Current English verse
+  showTranslation: boolean;     // Translation toggle
+  infiniteVerses: BibleVerse[]; // All loaded verses in infinite scroll
+  hasNextPage: boolean;         // More verses available
+  isFetchingNextPage: boolean;  // Loading next chunk
+  settings: {                   // User preferences
+    chunkSize: number;
+    autoLoadNextChapter: boolean;
+  };
+  // ... navigation state (book, chapter, verse)
 }
 ```
 

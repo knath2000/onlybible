@@ -413,6 +413,137 @@ const { data, fetchNextPage } = useInfiniteQuery({
 - **Simplified State**: Reduces boilerplate in `BibleContext` by offloading fetch logic.
 - **Integration**: Syncing TanStack state to a global reducer allows for a hybrid approach where UI components consume context but data logic is managed by the library.
 
+## API Route Mode Detection & Range Fetching (Latest Session)
+
+### Query Parameter Mode Detection
+**Pattern**: Use `request.nextUrl.searchParams.has()` for explicit mode detection instead of relying on defaulted parameter values.
+
+**Implementation**:
+```typescript
+// ❌ Wrong: Defaulted values cause confusion
+const startVerse = parseInt(searchParams.get('startVerse') || '1');
+const endVerse = parseInt(searchParams.get('endVerse') || '1');
+
+// ✅ Correct: Check presence explicitly
+const hasStart = searchParams.has('startVerse');
+const hasEnd = searchParams.has('endVerse');
+const hasVerse = searchParams.has('verse');
+
+if (hasStart && hasEnd) {
+  // Range mode
+} else if (hasVerse) {
+  // Single verse mode
+}
+```
+
+**Key Insights**:
+- **Prevents Accidental Modes**: Defaulted parameters can accidentally trigger range mode when user intends single verse.
+- **Clear Intent**: `has()` method clearly distinguishes between "missing" and "present but empty".
+- **Type Safety**: Avoids `NaN` from parsing undefined strings.
+
+### Chapter-Slice Range Fetching
+**Pattern**: Fetch entire chapter once, then slice the `text[]` array for range requests instead of N parallel single-verse calls.
+
+**Implementation**:
+```typescript
+// Fetch whole chapter
+const chapterUrl = `${bibleApiBase}/${normalizedBook}/${chapterNum}`;
+const chapterData = await fetch(chapterUrl).then(r => r.json());
+
+// Clamp and slice
+const safeStart = Math.max(1, startVerse);
+const safeEnd = Math.min(endVerse, chapterData.verses);
+const slicedVerses = chapterData.text.slice(safeStart - 1, safeEnd).map((text, i) => ({
+  verse: safeStart + i,
+  text: text || 'Verse not available'
+}));
+```
+
+**Key Insights**:
+- **Efficient Network Usage**: One HTTP request instead of N parallel requests.
+- **Server-Side Clamping**: Authoritative verse count prevents over-fetching.
+- **Atomic Operations**: Either get whole chapter or fail, no partial range results.
+
+### Meta Endpoint for Verse Counts
+**Pattern**: Separate lightweight endpoint returning only chapter metadata to eliminate hardcoded verse count tables.
+
+**Implementation**:
+```typescript
+// GET /api/bible?meta=1&book=Génesis&chapter=1
+// Returns: { book: "Génesis", chapter: 1, chapterVerseCount: 31 }
+
+// Client usage
+const count = await fetch(`/api/bible?book=${book}&chapter=${chapter}&meta=1`)
+  .then(r => r.json())
+  .then(data => data.chapterVerseCount);
+```
+
+**Key Insights**:
+- **Authoritative Data**: Always reflects true chapter length from upstream API.
+- **Lightweight**: Minimal payload, fast response.
+- **Dynamic Updates**: No need to maintain static count tables.
+
+## English Proxy Response Shape Alignment (Latest Session)
+
+### Upstream API Response Patterns
+**Pattern**: bible-api.com returns consistent JSON structure with `verses[]` array, not just concatenated text.
+
+**Response Structure**:
+```json
+{
+  "reference": "John 3:16",
+  "verses": [
+    {
+      "book_id": "JHN",
+      "book_name": "John",
+      "chapter": 3,
+      "verse": 16,
+      "text": "For God so loved the world..."
+    }
+  ],
+  "text": "For God so loved the world...",
+  "translation_id": "kjv",
+  "translation_name": "King James Version"
+}
+```
+
+**Key Insights**:
+- **Array-First**: Use `data.verses` array instead of splitting `data.text` by newlines.
+- **Robust Parsing**: Handles API response variations gracefully.
+- **Future-Proof**: Works with range responses that return multiple verses.
+
+### Bulk Translation with Range Caching
+**Pattern**: When enabling translations, fetch English for entire loaded range in one batch request.
+
+**Implementation**:
+```typescript
+const translateVerse = async () => {
+  if (state.showTranslation) {
+    dispatch({ type: 'TOGGLE_TRANSLATION' });
+    return;
+  }
+
+  // Get range of currently loaded infinite verses
+  const minVerse = Math.min(...state.infiniteVerses.map(v => v.verse));
+  const maxVerse = Math.max(...state.infiniteVerses.map(v => v.verse));
+
+  // Fetch all at once
+  await translationService.fetchEnglishRange(
+    state.currentBook,
+    state.currentChapter,
+    minVerse,
+    maxVerse
+  );
+
+  dispatch({ type: 'TOGGLE_TRANSLATION' });
+};
+```
+
+**Key Insights**:
+- **Batch Efficiency**: One request covers all visible verses.
+- **Cache Priming**: Range fetch populates individual verse caches automatically.
+- **User Experience**: Translations appear instantly when scrolling with translation enabled.
+
 ### Infinite Scroll UI
 **Pattern**: Intersection Observer API for detecting scroll position and triggering data loads.
 

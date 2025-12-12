@@ -48,8 +48,19 @@
 - ✅ **Top Bar Glow**: Reader header restyled with gold/purple glass gradient, expanded width, and refined button variants for hierarchy.
 
 ### Infinite Scroll Robustness (This Session)
-- ✅ **Range Clamping**: `fetchVerseRange` clamps to the real verse count and returns empty when past chapter end—no more “verse not found” tails.
+- ✅ **Range Clamping**: `fetchVerseRange` clamps to the real verse count and returns empty when past chapter end—no more "verse not found" tails.
 - ✅ **Search Jump Reliability**: Search panel scrolls to anchors without leading `#`, auto-loads more pages until the target appears, then centers smoothly.
+
+### API Route Fixes & Translation System (Latest Session)
+- ✅ **Mode Detection Fix**: Updated `/api/bible` to use `searchParams.has()` for proper single/range/meta mode detection instead of defaulted params.
+- ✅ **Range Fetching**: Implemented efficient chapter-slice approach using single upstream call + `text[]` slicing for range requests.
+- ✅ **Meta Endpoint**: Added `/api/bible?meta=1` for authoritative verse counts per chapter.
+- ✅ **Client-Side Counts**: Replaced hardcoded verse counts with dynamic calls to meta endpoint for accurate clamping.
+- ✅ **English Proxy Parsing**: Fixed response shape mismatch - `/api/bible/english` now uses upstream `verses[]` array, eliminating newline splitting brittleness.
+- ✅ **Translation Service**: Updated `fetchEnglishVerse`/`fetchEnglishRange` to parse new proxy responses and prime per-verse caches.
+- ✅ **Translate Button Logic**: Enhanced to fetch English for all currently loaded infinite verses in one batch request.
+- ✅ **Prefetch Optimization**: Replaced per-verse loops with efficient range prefetching in infinite query.
+- ✅ **Alignment Guards**: Added validation to prevent `undefined.split()` crashes in word alignment computation.
 
 ## Next Steps
 1. **Performance Monitoring**: Observe infinite scroll performance on low-end devices; consider virtualization if list grows too large.

@@ -31,6 +31,12 @@
 - **TTS Guard Rails**: `/api/tts` returns clear configuration errors; reader surfaces user-friendly message when TTS env vars are missing.
 - **Header Polish**: Sticky top bar widened to `max-w-5xl`, with gold/purple glass gradients and clearer button hierarchy (gold primary, outline secondary).
 - **Verse Styling Pass**: Spanish text uses serif italics with gold accents; English translation renders beneath on toggle; hover glow aligned to glass aesthetic.
+- **API Route Mode Detection**: Fixed query parameter parsing with `searchParams.has()` to prevent accidental range requests.
+- **Efficient Range Fetching**: Implemented chapter-slice approach using single upstream calls instead of N parallel verse requests.
+- **Authoritative Verse Counts**: Replaced hardcoded counts with dynamic meta endpoint calls for accurate chapter boundaries.
+- **English Proxy Stability**: Fixed response parsing to use upstream `verses[]` array, eliminating brittle newline splitting.
+- **Bulk Translation**: Translate button now fetches English for all visible infinite verses in one batch request.
+- **Alignment Crash Prevention**: Added validation guards to prevent `undefined.split()` errors in word alignment computation.
 
 ## What's Left to Build
 - **Alignment Accuracy Improvements** - Refine heuristic matching for better word-to-word connections
@@ -111,6 +117,7 @@
 - **v1.7**: UI Redesign ("Luminous Verses") & Context-Aware Translation
 - **v1.8**: Word Alignment Visualization & Enhanced Translation System
 - **v1.9**: Audio TTS playback via Azure proxy and speaker UI
+- **v2.0**: API Route Fixes & Bulk Translation System (Infinite scroll range parsing, authoritative verse counts, translation button for all visible verses)
 
 ## Current Project State (Latest)
 The project features a polished "Luminous Verses" design with a robust reading experience. It fully supports Spanish (RVR60) and English (KJV) integration. The translation system is now context-aware with an expanded dictionary (350+ terms) and MyMemory API fallback for unknown words. The new word alignment feature provides visual connections between Spanish and English words using elegant Bezier curves. Multi-word book names are correctly parsed, and all build errors have been resolved. The application is production-ready with comprehensive error handling and caching strategies. Infinite scrolling is now implemented for seamless verse reading.

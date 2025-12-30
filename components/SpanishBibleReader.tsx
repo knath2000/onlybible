@@ -57,7 +57,7 @@ export const SpanishBibleReader: React.FC = () => {
   }, [state.verseText, state.translatedText]);
 
   const [error, setError] = useState<BibleError | null>(null);
-  const [settingsOpen, setSettingsOpen] = useState(false);
+  // const [settingsOpen, setSettingsOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [debugInfo, setDebugInfo] = useState(false);
   const [isTestingConnection, setIsTestingConnection] = useState(false);
@@ -748,7 +748,7 @@ export const SpanishBibleReader: React.FC = () => {
 
             {/* Settings */}
             <GlassButton
-              onClick={() => setSettingsOpen(!settingsOpen)}
+              onClick={() => setViewMode('settings')}
               variant="liquid"
               size="sm"
               icon="⚙️"
@@ -786,8 +786,13 @@ export const SpanishBibleReader: React.FC = () => {
       )}
 
       {/* SettingsPanel and SearchPanel - assume existing */}
-      {settingsOpen && <SettingsPanel isOpen={settingsOpen} onClose={() => setSettingsOpen(false)} />}
-      {searchOpen && <SearchPanel isOpen={searchOpen} onClose={() => setSearchOpen(false)} />}
+      {/* {settingsOpen && <SettingsPanel isOpen={settingsOpen} onClose={() => setSettingsOpen(false)} />} */}
+      {searchOpen && (
+        <ModalShell isOpen={searchOpen} onClose={() => setSearchOpen(false)}>
+          <SearchPanel isOpen={searchOpen} onClose={() => setSearchOpen(false)} />
+        </ModalShell>
+      )}
+
     </div>
     </div>
   );

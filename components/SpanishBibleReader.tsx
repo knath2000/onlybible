@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useBible } from '../lib/context/BibleContext';
 import { bibleService, translationService } from '../lib/api';
-import { GlassCard, GlassButton, GlassInput } from './ui';
+import { GlassCard, GlassButton, GlassInput, ModalShell } from './ui';
 import { LoadingSpinner } from './LoadingSpinner';
 import { WordTranslationTooltip } from './WordTranslationTooltip';
 import { AlignmentOverlay } from './AlignmentOverlay';
